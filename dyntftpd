@@ -19,8 +19,20 @@ def open_newest_file(search_dir, prefix, path, match):
 	else:
 		return None
 
-def match(path, match):
-	logger.debug('Matched "%s"' % path)
+def hex_to_ip(hex):
+	assert(len(hex) == 8)
+	ip_nums = []
+	i = 0
+	while i < len(hex):
+		num = hex[i:i + 2]
+		ip_nums.append(str(int(num, 16)))
+		i += 2
+	return '.'.join(ip_nums)
+
+def gen_pxelinux_cfg(path, match):
+	hex_ip = match.group(1)
+	ip = hex_to_ip(hex_ip)
+	logger.debug('Matched "%s", which is %s' % (path, ip))
 	return StringIO('This is a sample dynamic file.')
 
 def main():
@@ -29,7 +41,7 @@ def main():
 
 	simul_fs = filesys.SimulatedFileSystem()
 
-	simul_fs.add_handler('^/pxelinux.cfg/[0-9a-fA-F]{8}$', match)
+	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$', gen_pxelinux_cfg)
 
 	image_dir = '/var/tmp/boot/'
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
