@@ -1,3 +1,5 @@
+import os
+import re
 
 def split_ver(ver):
 	return ver.split('-', 1)
@@ -54,5 +56,14 @@ def highest_file_ver(base, suffix, files):
 		if cmp_files(base, suffix, file, highest_file) == 1:
 			highest_file = file
 	return highest_file
+
+def find_highest_file_ver(base, suffix, search_dir):
+	regex = '^%s.+%s' % (base, suffix)
+	prog = re.compile(regex)
+	files = filter(prog.search, os.listdir(search_dir))
+	if len(files) > 0:
+		return os.path.join(search_dir, highest_file_ver(base, suffix, files))
+	else:
+		return None
 
 # vim:set ft=python ts=4:

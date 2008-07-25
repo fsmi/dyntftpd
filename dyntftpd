@@ -2,7 +2,6 @@
 
 from cStringIO import StringIO
 import tftpy
-import re
 import logging
 import os
 import file_ver_cmp
@@ -10,20 +9,15 @@ import filesys
 
 logger = logging.getLogger('dyntftpd')
 
-def return_newest_file(search_dir, prefix, path, match):
+def open_newest_file(search_dir, prefix, path, match):
 	prefix = prefix + '-'
 	suffix = '-' + match.group(1)
-	regex = '^%s.+%s' % (prefix, suffix)
-	logger.debug("regex: %s" % regex)
-	prog = re.compile(regex)
-	logger.debug(os.listdir(search_dir))
-	files = filter(prog.search, os.listdir(search_dir))
-	logger.debug("found matching files: %s" % files)
-	if len(files) > 0:
-		newest_fn = os.path.join(search_dir,
-				file_ver_cmp.highest_file_ver(prefix, suffix, files))
+	newest_fn = file_ver_cmp.find_highest_file_ver(prefix, suffix, search_dir)
+	if newest_fn is not None:
 		logger.info("determined newest file: %s" % newest_fn)
 		return open(newest_fn, 'rb')
+	else:
+		return None
 
 def match(path, match):
 	logger.debug('Matched "%s"' % path)
@@ -31,16 +25,17 @@ def match(path, match):
 
 def main():
 	logger.setLevel(logging.DEBUG)
-	tftpy.setLogLevel(logging.DEBUG)
-
-	image_dir = '/var/tmp/boot/'
+	tftpy.setLogLevel(logging.INFO)
 
 	simul_fs = filesys.SimulatedFileSystem()
+
 	simul_fs.add_handler('^/pxelinux.cfg/[0-9a-fA-F]{8}$', match)
+
+	image_dir = '/var/tmp/boot/'
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
-			lambda p, m: return_newest_file(image_dir, 'vmlinuz', p, m))
+			lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
 	simul_fs.add_handler('^/initrd-([^/]+)',
-			lambda p, m: return_newest_file(image_dir, 'initrd', p, m))
+			lambda p, m: open_newest_file(image_dir, 'initrd', p, m))
 
 	native_fs = tftpy.TftpNativeFileSys('./tftp')
 
