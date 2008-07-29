@@ -75,6 +75,10 @@ def main():
 	cf = SafeConfigParser()
 	cf.read(options.config_file)
 
+	if cf.has_option('pxe_linux', 'module_path'):
+		for path in cf.get('pxe_linux', 'module_path').split(':'):
+			sys.path.append(path)
+
 	logger.setLevel(logging.DEBUG)
 	tftpy.setLogLevel(logging.INFO)
 
