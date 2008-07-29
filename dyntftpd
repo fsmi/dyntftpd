@@ -30,35 +30,22 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
-def dump_file(dir, name):
-	return open(os.path.join(dir, name), 'rb').read()
-
-def gen_pxelinux_cfg(path, match):
-	cfg_snippet_dir = '.'
-	profile_dirs = '.'
-
+def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs):
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
 	logger.debug('Matched "%s", which is %s' % (path, ip))
-	cfg_data = dump_file(cfg_snippet_dir, 'cfg.head')
+	profile_dir = os.path.join(profile_dirs, ip)
 
-	default_label = None
-	labels = []
+	config_space = {}
+	execfile(os.path.join(profile_dir, 'boot_cfg.py'), config_space)
 
-	global_space = {
-			'SeparatorBootLabel': boot_label.SeparatorBootLabel,
-			'LocalBootLabel': boot_label.LocalBootLabel,
-			'ChainBootLabel': boot_label.ChainBootLabel,
-			'LinuxBootLabel': boot_label.LinuxBootLabel,
-			'LinuxNfsRootBootLabel': boot_label.LinuxNfsRootBootLabel,
+	kwargs = {
+			'ip': ip,
+			'profile_dir': profile_dir,
+			'global_cfg_dir': global_cfg_dir
 			}
-	config_space = { 'default_label': default_label, 'labels': labels }
-	execfile(os.path.join(profile_dirs, '%s/boot.cfg' % ip), global_space,
-			config_space)
-
-	for label in labels:
-		if label.name == default_label:
-			label.default = True
+	cfg_data = config_space['create_head_str'](**kwargs)
+	for label in config_space['create_labels'](**kwargs):
 		cfg_data += str(label)
 
 	return StringIO(cfg_data)
@@ -69,7 +56,10 @@ def main():
 
 	simul_fs = filesys.SimulatedFileSystem()
 
-	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$', gen_pxelinux_cfg)
+	cfg_dir = '.'
+	profile_dirs = '.'
+	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$',
+			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs))
 
 	image_dir = '/var/tmp/boot/'
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
