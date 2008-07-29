@@ -6,6 +6,7 @@ import logging
 import os
 import file_ver_cmp
 import filesys
+import textwrap
 
 logger = logging.getLogger('dyntftpd')
 
@@ -29,11 +30,131 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
+def dump_file(dir, name):
+	return open(os.path.join(dir, name), 'rb').read()
+
+class BootLabel(object):
+	SPACES = '        '
+
+	def __init__(self, name, desc = None, default = False, help = None,
+			disabled = False, password = None, indent = None):
+		self.name = name
+		self.desc = desc
+		self.default = default
+		self.help = help
+		self.disabled = disabled
+		self.password = password
+		self.indent = indent
+
+	def dump(self):
+		"""Template method for sub-classes. Dumps specific label data."""
+		return ''
+
+	def __str__(self):
+		str = "LABEL %s\n" % self.name
+		if self.desc is not None:
+			str += self.SPACES + "MENU LABEL %s\n" % self.desc
+		if self.indent is not None:
+			str += self.SPACES + "MENU INDENT %d\n" % self.indent
+		if self.password is not None:
+			str += self.SPACES + "MENU PASSWORD %s\n" % self.password
+		if self.help is not None:
+			str += self.SPACES + "TEXT HELP\n"
+			str += textwrap.fill(self.help, initial_indent = self.SPACES,
+					subsequent_indent = self.SPACES) + "\n"
+			str += self.SPACES + "END TEXT\n"
+		str += self.dump()
+		if self.disabled:
+			str += self.SPACES + "MENU DISABLE\n"
+		elif self.default:
+			str += self.SPACES + "MENU DEFAULT\n"
+		str += "\n"
+		return str
+
+class SeparatorBootLabel(BootLabel):
+	def __init__(self, name = '', disabled = True, **kwargs):
+		BootLabel.__init__(self, name, disabled = disabled, **kwargs)
+
+	def __str__(self):
+		str = "MENU SEPARATOR\n\n"
+		str += BootLabel.__str__(self)
+		return str
+
+class LocalBootLabel(BootLabel):
+	def dump(self):
+		return self.SPACES + "localboot 0\n"
+
+class ChainBootLabel(BootLabel):
+	def __init__(self, name, hd, part, **kwargs):
+		print repr(kwargs)
+		BootLabel.__init__(self, name, **kwargs)
+		self.hd = hd
+		self.part = part
+
+	def dump(self):
+		str = self.SPACES + "KERNEL chain.c32\n"
+		str += self.SPACES + "APPEND %s %d\n" % (self.hd, self.part)
+		return str
+
+class LinuxBootLabel(BootLabel):
+	def __init__(self, name, kernel, initrd, append, **kwargs):
+		BootLabel.__init__(self, name, **kwargs)
+		self.kernel = kernel
+		self.initrd = initrd
+		self.append = append
+
+	def dump(self):
+		str = self.SPACES + "KERNEL %s\n" % self.kernel
+		str += self.SPACES + "APPEND initrd=%s %s\n" % (self.initrd,
+				self.append)
+		return str
+
+
 def gen_pxelinux_cfg(path, match):
+	cfg_snippet_dir = '.'
+
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
 	logger.debug('Matched "%s", which is %s' % (path, ip))
-	return StringIO('This is a sample dynamic file.')
+	cfg_data = dump_file(cfg_snippet_dir, 'cfg.head')
+
+	default_label = 'hdd'
+	labels = [
+			LocalBootLabel(name = 'hdd', desc = 'Von ^Festplatte starten',
+					help = 'Beendet den Netzwerkbootprozess und startet ' \
+							'normal von der Festplatte.'),
+			ChainBootLabel(name = 'winxp', hd = 'hd0', part = 3,
+					desc = '^Windows XP Professional',
+					help = 'Startet Windows XP von der Festplatte.'),
+			LinuxBootLabel(name = 'linux', kernel = 'vmlinuz-i686',
+					initrd = 'initrd.img-i686',
+					append = 'quiet vga=normal ramdisk_size=14332 ' \
+							'root=/dev/nfs ' \
+							'nfsroot=10.14.1.3:/srv/nfs/clients/test,v3,tcp,rsize=32768,wsize=32768 ' \
+							'ro ip=dhcp init=/usr/local/sbin/startup ' \
+							'DISK=/dev/hda1',
+					desc = '^FSMI Linux (Kernel: aktuell / Image: test)'),
+			SeparatorBootLabel(desc = 'Admin:'),
+			LinuxBootLabel(name = 'rescue', kernel = 'd-i/linux-etch-i386',
+					initrd = 'd-i/initrd-etch-i386',
+					append = 'vga=normal rescue/enable=true --',
+					desc = '^Wiederherstellungskonsole',
+					help = 'Startet einen Debian-Installer (etch/i386) im ' \
+							'Rescue Mode.',
+					password = '<placeholder>', indent = 1),
+			LinuxBootLabel(name = 'install', kernel = 'd-i/linux-etch-i386',
+					initrd = 'd-i/initrd-etch-i386', append = 'vga=normal --',
+					desc = '^Debian-Installer (etch/i386)',
+					help = 'Startet einen Debian-Installer (etch/i386).',
+					password = '<placeholder>', indent = 1),
+			]
+
+	for label in labels:
+		if label.name == default_label:
+			label.default = True
+		cfg_data += str(label)
+
+	return StringIO(cfg_data)
 
 def main():
 	logger.setLevel(logging.DEBUG)
