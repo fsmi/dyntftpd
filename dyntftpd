@@ -1,5 +1,13 @@
 #!/usr/bin/python
 
+PACKAGE_MODULE_PATH = '.'
+CONFIG_FILE = '/etc/dyntftpd.conf'
+
+import sys
+sys.path.append(PACKAGE_MODULE_PATH)
+
+from optparse import OptionParser
+from ConfigParser import SafeConfigParser
 from cStringIO import StringIO
 import tftpy
 import logging
@@ -51,23 +59,39 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs):
 	return StringIO(cfg_data)
 
 def main():
+	# Parse command-line options.
+	parser = OptionParser()
+
+	parser.add_option("-c", "--config",
+					action = "store", dest = "config_file",
+					help = "Configuration file",
+					default = CONFIG_FILE)
+
+	(options, args) = parser.parse_args()
+	if len(args) != 0:
+		parser.error("incorrect number of arguments")
+
+	# Load configuration file.
+	cf = SafeConfigParser()
+	cf.read(options.config_file)
+
 	logger.setLevel(logging.DEBUG)
 	tftpy.setLogLevel(logging.INFO)
 
 	simul_fs = filesys.SimulatedFileSystem()
 
-	cfg_dir = '.'
-	profile_dirs = '.'
+	cfg_dir = cf.get('pxe_linux', 'global_cfg_dir')
+	profile_dirs = cf.get('pxe_linux', 'profile_cfg_dirs')
 	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$',
 			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs))
 
-	image_dir = '/var/tmp/boot/'
+	image_dir = cf.get('overlay', 'image_dir')
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
 			lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
 	simul_fs.add_handler('^/initrd-([^/]+)',
 			lambda p, m: open_newest_file(image_dir, 'initrd', p, m))
 
-	native_fs = tftpy.TftpNativeFileSys('./tftp')
+	native_fs = tftpy.TftpNativeFileSys(cf.get('tftp', 'root'))
 
 	fss = filesys.FileSystemStack()
 	fss.add_file_sys(native_fs)
@@ -75,7 +99,7 @@ def main():
 
 	server = tftpy.TftpCommonServer(fss)
 	try:
-		server.listen('127.0.0.1', 2069)
+		server.listen(cf.get('tftp', 'host'), cf.getint('tftp', 'port'))
 	except KeyboardInterrupt:
 		pass
 
