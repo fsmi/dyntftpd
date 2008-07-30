@@ -120,8 +120,8 @@ def main():
 	image_dir = cf.get('overlay', 'image_dir')
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
 			lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
-	simul_fs.add_handler('^/initrd-([^/]+)',
-			lambda p, m: open_newest_file(image_dir, 'initrd', p, m))
+	simul_fs.add_handler('^/initrd.img-([^/]+)',
+			lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
 
 	native_fs = tftpy.TftpNativeFileSys(cf.get('tftp', 'root'))
 
