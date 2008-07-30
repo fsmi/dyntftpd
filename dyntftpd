@@ -12,6 +12,9 @@ from cStringIO import StringIO
 import tftpy
 import logging
 import os
+import socket
+import re
+
 import file_ver_cmp
 import filesys
 import boot_label
@@ -38,11 +41,16 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
-def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs):
+def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
-	logger.debug('Matched "%s", which is %s' % (path, ip))
-	profile_dir = os.path.join(profile_dirs, ip)
+	host = socket.gethostbyaddr(ip)[0]
+	domain_match = domain_regex.search(host)
+	if domain_match is None:
+		return None
+
+	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
+	profile_dir = os.path.join(profile_dirs, domain_match.group(1))
 
 	config_space = {}
 	execfile(os.path.join(profile_dir, 'boot_cfg.py'), config_space)
@@ -84,10 +92,12 @@ def main():
 
 	simul_fs = filesys.SimulatedFileSystem()
 
+	domain_match = re.compile(cf.get('pxe_linux', 'domain_regex'))
 	cfg_dir = cf.get('pxe_linux', 'global_cfg_dir')
 	profile_dirs = cf.get('pxe_linux', 'profile_cfg_dirs')
 	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$',
-			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs))
+			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs,
+					domain_match))
 
 	image_dir = cf.get('overlay', 'image_dir')
 	simul_fs.add_handler('^/vmlinuz-([^/]+)',
