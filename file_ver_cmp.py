@@ -76,7 +76,7 @@ def highest_file_ver(base, suffix, files):
 	return highest_file
 
 def find_highest_file_ver(base, suffix, search_dir):
-	regex = '^%s.+%s' % (base, suffix)
+	regex = '^%s.+%s$' % (base, suffix)
 	prog = re.compile(regex)
 	files = filter(prog.search, os.listdir(search_dir))
 	if len(files) > 0:
