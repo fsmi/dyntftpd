@@ -47,7 +47,7 @@ class BootLabel(object):
 			str += self.SPACES + "TEXT HELP\n"
 			str += textwrap.fill(self.help, initial_indent = self.SPACES,
 					subsequent_indent = self.SPACES) + "\n"
-			str += self.SPACES + "END TEXT\n"
+			str += self.SPACES + "ENDTEXT\n"
 		str += self.dump()
 		if self.disabled:
 			str += self.SPACES + "MENU DISABLE\n"
