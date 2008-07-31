@@ -71,7 +71,6 @@ class LocalBootLabel(BootLabel):
 
 class ChainBootLabel(BootLabel):
 	def __init__(self, name, hd, part, **kwargs):
-		print repr(kwargs)
 		BootLabel.__init__(self, name, **kwargs)
 		self.hd = hd
 		self.part = part
