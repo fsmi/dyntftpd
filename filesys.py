@@ -57,13 +57,15 @@ class SimulatedFilePath(object):
 
 		# Find matching handler and execute it.
 		self.fileobj = None
+		self.size = 0
 		for regex, handler in self.file_sys.handlers:
 			logger.debug('Matching %s against %s' % (regex, path))
 			match = re.search(regex, path)
 			if match is not None:
-				fileobj = handler(self.path, match)
+				fileobj, size = handler(self.path, match)
 				if fileobj is not None:
 					self.fileobj = fileobj
+					self.size = size
 					break
 				else:
 					logger.info("Matching handler failed to produce a file name.")
@@ -88,6 +90,9 @@ class SimulatedFilePath(object):
 
 	def get_full_path(self):
 		return self.path
+
+	def get_size(self):
+		return self.size
 
 	def __str__(self):
 		return self.path

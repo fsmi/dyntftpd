@@ -45,9 +45,9 @@ def open_newest_file(search_dir, prefix, path, match):
 	newest_fn = file_ver_cmp.find_highest_file_ver(prefix, suffix, search_dir)
 	if newest_fn is not None:
 		logger.info("determined newest file: %s" % newest_fn)
-		return open(newest_fn, 'rb')
+		return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
 	else:
-		return None
+		return None, 0
 
 def hex_to_ip(hex):
 	assert(len(hex) == 8)
@@ -82,7 +82,7 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 	for label in config_space['create_labels'](**kwargs):
 		cfg_data += str(label)
 
-	return StringIO(cfg_data)
+	return StringIO(cfg_data), len(cfg_data)
 
 def main():
 	# Parse command-line options.
