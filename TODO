@@ -1,0 +1,5 @@
+- create a debian package
+- use private modules to private namespace
+- use python-daemon
+- log to syslog
+- support invocation via inetd
