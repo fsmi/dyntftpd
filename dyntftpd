@@ -65,13 +65,17 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 	host = socket.gethostbyaddr(ip)[0]
 	domain_match = domain_regex.search(host)
 	if domain_match is None:
-		return None
+		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
 	profile_dir = os.path.join(profile_dirs, domain_match.group(1))
+	profile_file = os.path.join(profile_dir, 'boot_cfg.py')
+	if not os.path.exists(profile_file):
+		logger.debug('No configuration found for host %s' % host)
+		return None, 0
 
 	config_space = {}
-	execfile(os.path.join(profile_dir, 'boot_cfg.py'), config_space)
+	execfile(profile_file, config_space)
 
 	kwargs = {
 			'ip': ip,
