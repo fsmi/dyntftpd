@@ -3,3 +3,6 @@
 - use python-daemon
 - log to syslog
 - support invocation via inetd
+- modules loaded from profile configuration files should not remain in memory
+  or should somehow be forced to reload the next time the profile configuration
+  is loaded.
