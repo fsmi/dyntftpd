@@ -19,7 +19,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA.
 
 PACKAGE_MODULE_PATH = '.'
-CONFIG_FILE = '/etc/dyntftpd.conf'
+CONFIG_FILE = '/etc/dyntftpd/dyntftpd.conf'
 
 import sys
 sys.path.append(PACKAGE_MODULE_PATH)
@@ -70,10 +70,9 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	profile_dir = os.path.join(profile_dirs, domain_match.group(1))
-	profile_file = os.path.join(profile_dir, 'boot_cfg.py')
+	profile_file = os.path.join(profile_dirs, '%s_cfg.py' % domain_match.group(1))
 	if not os.path.exists(profile_file):
-		logger.debug('No configuration found for host %s' % host)
+		logger.debug('No configuration found for host %s (%s)' % (host, profile_file))
 		return None, 0
 
 	config_space = {}
@@ -81,7 +80,6 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 
 	kwargs = {
 			'ip': ip,
-			'profile_dir': profile_dir,
 			'global_cfg_dir': global_cfg_dir
 			}
 	cfg_data = config_space['create_head_str'](**kwargs)
