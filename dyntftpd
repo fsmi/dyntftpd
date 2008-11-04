@@ -29,6 +29,7 @@ from ConfigParser import SafeConfigParser
 from cStringIO import StringIO
 import tftpy
 import logging
+import logging.config
 import os
 import socket
 import re
@@ -111,6 +112,9 @@ def main():
 
 	logger.setLevel(logging.DEBUG)
 	tftpy.setLogLevel(logging.INFO)
+
+	# Parse configuration file again, this time specifically for logging.
+	logging.config.fileConfig(options.config_file)
 
 	simul_fs = filesys.SimulatedFileSystem()
 
