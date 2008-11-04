@@ -1,4 +1,7 @@
 - create a debian package
+- more complex fs overlays: allow more than one tree to be mounted into the
+  provided tftp tree. (Use case: provide a test/ directory with kernel images
+  from a testing branch.)
 - use private modules to private namespace
 - support invocation via inetd
 - modules loaded from profile configuration files should not remain in memory
