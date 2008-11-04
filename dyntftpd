@@ -111,11 +111,10 @@ def main():
 		for path in cf.get('pxe_linux', 'module_path').split(':'):
 			sys.path.append(path)
 
-	logger.setLevel(logging.DEBUG)
-	tftpy.setLogLevel(logging.INFO)
 
 	# Parse configuration file again, this time specifically for logging.
 	logging.config.fileConfig(options.config_file)
+	logger.info('Loading dyntftpd')
 
 	simul_fs = filesys.SimulatedFileSystem()
 
@@ -141,12 +140,14 @@ def main():
 	server = tftpy.TftpCommonServer(fss)
 
 	if cf.getboolean('tftp', 'background'):
+		logger.debug('moving dyntftpd to background')
 		daemon.daemonise(pid_file = cf.get('tftp', 'pid_file'))
 
 	try:
 		server.listen(cf.get('tftp', 'host'), cf.getint('tftp', 'port'))
 	except KeyboardInterrupt:
 		pass
+	logger.debug('Exiting dyntftpd')
 
 if __name__ == '__main__':
 	main()
