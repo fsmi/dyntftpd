@@ -42,7 +42,7 @@ class BootLabel(object):
 		if self.indent is not None:
 			str += self.SPACES + "MENU INDENT %d\n" % self.indent
 		if self.password is not None:
-			str += self.SPACES + "MENU PASSWORD %s\n" % self.password
+			str += self.SPACES + "MENU PASSWD %s\n" % self.password
 		if self.help is not None:
 			str += self.SPACES + "TEXT HELP\n"
 			str += textwrap.fill(self.help, initial_indent = self.SPACES,
