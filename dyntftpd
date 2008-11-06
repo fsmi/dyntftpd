@@ -64,7 +64,10 @@ def hex_to_ip(hex):
 def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
-	host = socket.gethostbyaddr(ip)[0]
+	try:
+		host = socket.gethostbyaddr(ip)[0]
+	except socket.herror:
+		return None, 0
 	domain_match = domain_regex.search(host)
 	if domain_match is None:
 		return None, 0
