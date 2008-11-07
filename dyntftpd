@@ -37,15 +37,16 @@ import daemon
 import signal
 
 # Private python modules.
-import file_ver_cmp
-import filesys
+import dt_file_ver_cmp
+import dt_filesys
 
 logger = logging.getLogger('dyntftpd')
 
 def open_newest_file(search_dir, prefix, path, match):
 	prefix = prefix + '-'
 	suffix = '-' + match.group(1)
-	newest_fn = file_ver_cmp.find_highest_file_ver(prefix, suffix, search_dir)
+	newest_fn = dt_file_ver_cmp.find_highest_file_ver(prefix, suffix,
+			search_dir)
 	if newest_fn is not None:
 		logger.info("determined newest file: %s" % newest_fn)
 		return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
@@ -146,7 +147,7 @@ def main():
 	logging.config.fileConfig(options.config_file)
 	logger.info('Loading dyntftpd')
 
-	simul_fs = filesys.SimulatedFileSystem()
+	simul_fs = dt_filesys.SimulatedFileSystem()
 
 	domain_match = re.compile(cf.get('pxe_linux', 'domain_regex'))
 	cfg_dir = cf.get('pxe_linux', 'global_cfg_dir')
@@ -163,7 +164,7 @@ def main():
 
 	native_fs = tftpy.TftpNativeFileSys(cf.get('tftp', 'root'))
 
-	fss = filesys.FileSystemStack()
+	fss = dt_filesys.FileSystemStack()
 	fss.add_file_sys(native_fs)
 	fss.add_file_sys(simul_fs)
 
