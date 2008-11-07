@@ -146,8 +146,8 @@ def main():
 
 	try:
 		server.listen(cf.get('tftp', 'host'), cf.getint('tftp', 'port'))
-	except KeyboardInterrupt:
-		pass
+	except:
+		logger.exception('Exception caught, aborting')
 	logger.debug('Exiting dyntftpd')
 
 if __name__ == '__main__':
