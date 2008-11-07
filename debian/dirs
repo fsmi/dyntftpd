@@ -1,0 +1,6 @@
+etc
+etc/default
+etc/dyntftpd
+etc/dyntftpd/pxelinux.d
+usr/sbin
+usr/share/dyntftpd

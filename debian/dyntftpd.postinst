@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+if ! id -u dyntftpd > /dev/null 2>&1 ; then
+	adduser --system \
+		--shell /bin/sh \
+		--no-create-home --home /usr/share/dyntftpd \
+		dyntftpd
+fi
+
+#DEBHELPER#

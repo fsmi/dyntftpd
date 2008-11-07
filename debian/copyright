@@ -1,0 +1,9 @@
+This package was debianized by Fabian Knittel
+<fabian.knittel@fsmi.uni-karlsruhe.de> on Fri, 07 Nov 2008 20:40:39 +0100.
+
+It was downloaded from git://fsmi-dev.fsmi.uni-karlsruhe.de/git/dyntftpd.git
+
+Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
+
+The software and the Debian packaging is licensed under the GPL, see
+`/usr/share/common-licenses/GPL'.

@@ -1,0 +1,92 @@
+#! /bin/sh
+# dyntftpd	Init.d file for the dyntftpd daemon.
+#
+#		Heavily based on the template file written by Miquel van
+#		Smoorenburg <miquels@cistron.nl> and modified for Debian
+#		by Ian Murdock <imurdock@gnu.ai.mit.edu>, version 1.9.
+#
+### BEGIN INIT INFO
+# Provides:          dyntftpd
+# Required-Start:    $network $local_fs $syslog
+# Required-Stop:     $network $local_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start dyntftpd daemon
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/dyntftpd-daemon
+NAME=dyntftpd
+DESC=dyntftpd
+
+test -x $DAEMON || exit 0
+
+# Include dyntftpd defaults if available
+if [ -f /etc/default/dyntftpd ] ; then
+	. /etc/default/dyntftpd
+fi
+
+. /lib/lsb/init-functions
+
+set -e
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting $DESC:"
+
+	log_progress_msg "$NAME"
+	if ! start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
+		--exec $DAEMON -- $DAEMON_OPTS; then
+		log_end_msg 1
+		exit 1
+	fi
+
+	log_end_msg 0
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC:"
+
+	log_progress_msg "$NAME"
+	start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid
+	log_end_msg 0
+	;;
+  #reload)
+	#
+	#	If the daemon can reload its config files on the fly
+	#	for example by sending it SIGHUP, do it here.
+	#
+	#	If the daemon responds to changes in its config file
+	#	directly anyway, make this a do-nothing entry.
+	#
+	# log_daemon_msg "Reloading $DESC configuration files:"
+	# log_progress_msg "$NAME"
+	# start-stop-daemon --stop --signal HUP --quiet --pidfile \
+	#	/var/run/$NAME.pid --exec $DAEMON
+	# log_end_msg 0
+  #;;
+  force-reload)
+	#
+	#	If the "reload" option is implemented, move the "force-reload"
+	#	option to the "reload" entry above. If not, "force-reload" is
+	#	just the same as "restart" except that it does nothing if the
+	#   daemon isn't already running.
+	# check wether $DAEMON is running. If so, restart
+	start-stop-daemon --stop --test --quiet --pidfile \
+		/var/run/$NAME.pid \
+	&& $0 restart \
+	|| exit 0
+	;;
+  restart)
+	$0 stop
+	sleep 1
+	$0 start
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	# echo "Usage: $N {start|stop|restart|reload|force-reload}" >&2
+	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
