@@ -34,6 +34,7 @@ import os
 import socket
 import re
 import daemon
+import signal
 
 import file_ver_cmp
 import filesys
@@ -91,6 +92,13 @@ def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
 
 	return StringIO(cfg_data), len(cfg_data)
 
+class SignalReceived(SystemExit):
+	def __init__(self, signum):
+		SystemExit.__init__(self, "signal %d" % signum)
+
+def sig_handler(signum, frame):
+	raise SignalReceived, int(signum)
+
 def main():
 	# Parse command-line options.
 	parser = OptionParser()
@@ -140,15 +148,22 @@ def main():
 
 	server = tftpy.TftpCommonServer(fss)
 
+	# (Optionally) move to background
 	if cf.getboolean('tftp', 'background'):
 		logger.debug('moving dyntftpd to background')
 		daemon.daemonise(pid_file = cf.get('tftp', 'pid_file'))
 
+	# Set signal handlers.
+	signal.signal(signal.SIGINT, sig_handler)
+	signal.signal(signal.SIGTERM, sig_handler)
+
 	try:
 		server.listen(cf.get('tftp', 'host'), cf.getint('tftp', 'port'))
+	except SystemExit, ex:
+		logger.info('Shutdown requested: %s' % ex)
 	except:
 		logger.exception('Exception caught, aborting')
-	logger.debug('Exiting dyntftpd')
+	logger.info('Exiting dyntftpd')
 
 if __name__ == '__main__':
 	main()
