@@ -36,9 +36,9 @@ import re
 import daemon
 import signal
 
+# Private python modules.
 import file_ver_cmp
 import filesys
-import boot_label
 
 logger = logging.getLogger('dyntftpd')
 
