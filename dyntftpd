@@ -138,8 +138,8 @@ def main():
 	cf = SafeConfigParser()
 	cf.read(options.config_file)
 
-	if cf.has_option('pxe_linux', 'module_path'):
-		for path in cf.get('pxe_linux', 'module_path').split(':'):
+	if cf.has_option('daemon', 'module_path'):
+		for path in cf.get('daemon', 'module_path').split(':'):
 			sys.path.append(path)
 
 
@@ -171,9 +171,10 @@ def main():
 	server = tftpy.TftpCommonServer(fss)
 
 	# (Optionally) move to background
-	if cf.getboolean('tftp', 'background'):
+	if cf.has_option('daemon', 'background') and \
+			cf.getboolean('daemon', 'background'):
 		logger.debug('moving dyntftpd to background')
-		daemon.daemonise(pid_file = cf.get('tftp', 'pid_file'))
+		daemon.daemonise(pid_file = cf.get('daemon', 'pid_file'))
 
 	# Set signal handlers.
 	signal.signal(signal.SIGINT, sig_handler)
