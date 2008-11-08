@@ -63,21 +63,28 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
-def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
+def handle_client_config(path, match, cf, section, client_config_dirs):
+	global_cfg_dir = cf.get(section, 'global_cfg_dir')
+	hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
+
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
 	try:
 		host = socket.gethostbyaddr(ip)[0]
 	except socket.herror:
+		logger.debug('Could not resolve %s/%s' % (hex_ip, ip))
 		return None, 0
-	domain_match = domain_regex.search(host)
-	if domain_match is None:
+	logger.debug('Searching for %s/%s/%s' % (hex_ip, ip, host))
+	hostname_match = hostname_regex.search(host)
+	if hostname_match is None:
 		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	profile_file = os.path.join(profile_dirs, '%s_cfg.py' % domain_match.group(1))
+	profile_file = os.path.join(client_config_dirs,
+			'%s_cfg.py' % hostname_match.group(1))
 	if not os.path.exists(profile_file):
-		logger.debug('No configuration found for host %s (%s)' % (host, profile_file))
+		logger.debug('No configuration found for host %s (%s)' % (
+				host, profile_file))
 		return None, 0
 
 	config_space = {}
@@ -109,7 +116,8 @@ def add_overlay(simul_fs, cf, section):
 	if virtual_dir[-1] != '/':
 		virtual_dir += '/'
 
-	if cf.get(section, 'type') == 'newest_kernel':
+	type = cf.get(section, 'type')
+	if type == 'newest_kernel':
 		image_dir = cf.get(section, 'image_dir')
 		logger.debug('Adding kernel image overlay at %s to %s' % (
 				virtual_dir, image_dir))
@@ -117,6 +125,13 @@ def add_overlay(simul_fs, cf, section):
 				lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
 		simul_fs.add_handler('^%sinitrd.img-([^/]+)$' % virtual_dir,
 				lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
+	elif type == 'client_config':
+		client_config_dir = cf.get(section, 'client_config_dir')
+		logger.debug('Adding client config overlay at %s to %s' % (
+				virtual_dir, client_config_dir))
+		simul_fs.add_handler('^%s([0-9a-fA-F]{8})$' % virtual_dir,
+				lambda p, m: handle_client_config(p, m, cf, section,
+						client_config_dir ))
 	else:
 		raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
 				(key, cf.get(section, 'type'))
@@ -138,23 +153,15 @@ def main():
 	cf = SafeConfigParser()
 	cf.read(options.config_file)
 
-	if cf.has_option('daemon', 'module_path'):
-		for path in cf.get('daemon', 'module_path').split(':'):
-			sys.path.append(path)
-
-
 	# Parse configuration file again, this time specifically for logging.
 	logging.config.fileConfig(options.config_file)
 	logger.info('Loading dyntftpd')
 
-	simul_fs = dt_filesys.SimulatedFileSystem()
+	if cf.has_option('daemon', 'module_path'):
+		for path in cf.get('daemon', 'module_path').split(':'):
+			sys.path.append(path)
 
-	domain_match = re.compile(cf.get('pxe_linux', 'domain_regex'))
-	cfg_dir = cf.get('pxe_linux', 'global_cfg_dir')
-	profile_dirs = cf.get('pxe_linux', 'profile_cfg_dirs')
-	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$',
-			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs,
-					domain_match))
+	simul_fs = dt_filesys.SimulatedFileSystem()
 
 	# Add overlays
 	if cf.get('overlays', 'keys'):
