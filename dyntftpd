@@ -107,7 +107,7 @@ class SignalReceived(SystemExit):
 def sig_handler(signum, frame):
 	raise SignalReceived, int(signum)
 
-def add_overlay(simul_fs, cf, section):
+def add_overlay(fss, cf, section):
 	virtual_dir = cf.get(section, 'virtual_dir')
 	if virtual_dir[0] != '/':
 		raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
@@ -121,17 +121,27 @@ def add_overlay(simul_fs, cf, section):
 		image_dir = cf.get(section, 'image_dir')
 		logger.debug('Adding kernel image overlay at %s to %s' % (
 				virtual_dir, image_dir))
+		simul_fs = dt_filesys.SimulatedFileSystem()
 		simul_fs.add_handler('^%svmlinuz-([^/]+)$' % virtual_dir,
 				lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
 		simul_fs.add_handler('^%sinitrd.img-([^/]+)$' % virtual_dir,
 				lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
+		fss.add_file_sys(simul_fs)
 	elif type == 'client_config':
 		client_config_dir = cf.get(section, 'client_config_dir')
 		logger.debug('Adding client config overlay at %s to %s' % (
 				virtual_dir, client_config_dir))
+		simul_fs = dt_filesys.SimulatedFileSystem()
 		simul_fs.add_handler('^%s([0-9a-fA-F]{8})$' % virtual_dir,
 				lambda p, m: handle_client_config(p, m, cf, section,
 						client_config_dir ))
+		fss.add_file_sys(simul_fs)
+	elif type == 'native':
+		assert virtual_dir == '/'
+		root_dir = cf.get(section, 'root')
+		logger.debug('Adding native overlay at %s to %s' % (
+				virtual_dir, root_dir))
+		fss.add_file_sys(tftpy.TftpNativeFileSys(root_dir))
 	else:
 		raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
 				(key, cf.get(section, 'type'))
@@ -161,19 +171,12 @@ def main():
 		for path in cf.get('daemon', 'module_path').split(':'):
 			sys.path.append(path)
 
-	simul_fs = dt_filesys.SimulatedFileSystem()
+	fss = dt_filesys.FileSystemStack()
 
 	# Add overlays
 	if cf.get('overlays', 'keys'):
 		for key in cf.get('overlays', 'keys').split(','):
-			add_overlay(simul_fs, cf, 'overlay_%s' % key.strip())
-
-
-	native_fs = tftpy.TftpNativeFileSys(cf.get('tftp', 'root'))
-
-	fss = dt_filesys.FileSystemStack()
-	fss.add_file_sys(native_fs)
-	fss.add_file_sys(simul_fs)
+			add_overlay(fss, cf, 'overlay_%s' % key.strip())
 
 	server = tftpy.TftpCommonServer(fss)
 
