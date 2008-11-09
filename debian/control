@@ -12,11 +12,11 @@ Depends: ${python:Depends}, adduser, python-daemon (>= 0.1.1-1),
  python-tftpy (>= 0.4.5-1~fsmi6)
 Description: TFTP daemon with support for dynamic generation of content
  This tftp daemon provides hooks to generate content on the fly using
- user-provided python code or a set of built-in modes.
+ user-provided Python code or a set of built-in modes.
  .
  Currently the following overlay types are provided:
-   * deliver the newest linux kernel image from a set of images,
+   * deliver the newest Linux kernel image from a set of images,
    * generate pxelinux configuration files based on per-client settings (i.e.
-     user provided python code) and
+     user provided Python code) and
    * take static file from regular file system.
 XB-Python-Version: ${python:Versions}
