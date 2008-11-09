@@ -63,7 +63,7 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
-def handle_client_config(path, match, cf, section, client_config_dirs):
+def handle_pxelinux_config(path, match, cf, section, pxelinux_config_dirs):
 	global_cfg_dir = cf.get(section, 'global_cfg_dir')
 	hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
 
@@ -80,7 +80,7 @@ def handle_client_config(path, match, cf, section, client_config_dirs):
 		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	profile_file = os.path.join(client_config_dirs,
+	profile_file = os.path.join(pxelinux_config_dirs,
 			'%s_cfg.py' % hostname_match.group(1))
 	if not os.path.exists(profile_file):
 		logger.debug('No configuration found for host %s (%s)' % (
@@ -124,14 +124,14 @@ def add_overlay(fss, cf, section):
 		simul_fs.add_handler('^/initrd.img-([^/]+)$',
 				lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
 		fss.add_file_sys(simul_fs, virtual_dir)
-	elif type == 'client_config':
-		client_config_dir = cf.get(section, 'client_config_dir')
+	elif type == 'pxelinux_config':
+		pxelinux_config_dir = cf.get(section, 'pxelinux_config_dir')
 		logger.debug('Adding client config overlay at %s to %s' % (
-				virtual_dir, client_config_dir))
+				virtual_dir, pxelinux_config_dir))
 		simul_fs = dt_filesys.SimulatedFileSystem()
 		simul_fs.add_handler('^/([0-9a-fA-F]{8})$',
-				lambda p, m: handle_client_config(p, m, cf, section,
-						client_config_dir ))
+				lambda p, m: handle_pxelinux_config(p, m, cf, section,
+						pxelinux_config_dir))
 		fss.add_file_sys(simul_fs, virtual_dir)
 	elif type == 'native':
 		root_dir = cf.get(section, 'root')
