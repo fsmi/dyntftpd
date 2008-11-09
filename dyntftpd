@@ -2,7 +2,7 @@
 #
 # dyntftpd
 #
-# Copyright (C) 2008 Fabian Knittel <fabian.knittel@fsmi.uni-karlsruhe.de>
+# Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,16 +36,17 @@ import re
 import daemon
 import signal
 
-import file_ver_cmp
-import filesys
-import boot_label
+# Private python modules.
+import dt_file_ver_cmp
+import dt_filesys
 
 logger = logging.getLogger('dyntftpd')
 
 def open_newest_file(search_dir, prefix, path, match):
 	prefix = prefix + '-'
 	suffix = '-' + match.group(1)
-	newest_fn = file_ver_cmp.find_highest_file_ver(prefix, suffix, search_dir)
+	newest_fn = dt_file_ver_cmp.find_highest_file_ver(prefix, suffix,
+			search_dir)
 	if newest_fn is not None:
 		logger.info("determined newest file: %s" % newest_fn)
 		return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
@@ -62,21 +63,28 @@ def hex_to_ip(hex):
 		i += 2
 	return '.'.join(ip_nums)
 
-def gen_pxelinux_cfg(path, match, global_cfg_dir, profile_dirs, domain_regex):
+def handle_pxelinux_config(path, match, cf, section, pxelinux_config_dirs):
+	global_cfg_dir = cf.get(section, 'global_cfg_dir')
+	hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
+
 	hex_ip = match.group(1)
 	ip = hex_to_ip(hex_ip)
 	try:
 		host = socket.gethostbyaddr(ip)[0]
 	except socket.herror:
+		logger.debug('Could not resolve %s/%s' % (hex_ip, ip))
 		return None, 0
-	domain_match = domain_regex.search(host)
-	if domain_match is None:
+	logger.debug('Searching for %s/%s/%s' % (hex_ip, ip, host))
+	hostname_match = hostname_regex.search(host)
+	if hostname_match is None:
 		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	profile_file = os.path.join(profile_dirs, '%s_cfg.py' % domain_match.group(1))
+	profile_file = os.path.join(pxelinux_config_dirs,
+			'%s_cfg.py' % hostname_match.group(1))
 	if not os.path.exists(profile_file):
-		logger.debug('No configuration found for host %s (%s)' % (host, profile_file))
+		logger.debug('No configuration found for host %s (%s)' % (
+				host, profile_file))
 		return None, 0
 
 	config_space = {}
@@ -99,23 +107,37 @@ class SignalReceived(SystemExit):
 def sig_handler(signum, frame):
 	raise SignalReceived, int(signum)
 
-def add_overlay(simul_fs, cf, section):
+def add_overlay(fss, cf, section):
 	virtual_dir = cf.get(section, 'virtual_dir')
 	if virtual_dir[0] != '/':
 		raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
 				(key, virtual_dir)
-	# Assure virtual dir ends with slash
-	if virtual_dir[-1] != '/':
-		virtual_dir += '/'
 
-	if cf.get(section, 'type') == 'newest_kernel':
+	type = cf.get(section, 'type')
+	if type == 'newest_kernel':
 		image_dir = cf.get(section, 'image_dir')
 		logger.debug('Adding kernel image overlay at %s to %s' % (
 				virtual_dir, image_dir))
-		simul_fs.add_handler('^%svmlinuz-([^/]+)$' % virtual_dir,
+		simul_fs = dt_filesys.SimulatedFileSystem()
+		simul_fs.add_handler('^/vmlinuz-([^/]+)$',
 				lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
-		simul_fs.add_handler('^%sinitrd.img-([^/]+)$' % virtual_dir,
+		simul_fs.add_handler('^/initrd.img-([^/]+)$',
 				lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
+		fss.add_file_sys(simul_fs, virtual_dir)
+	elif type == 'pxelinux_config':
+		pxelinux_config_dir = cf.get(section, 'pxelinux_config_dir')
+		logger.debug('Adding client config overlay at %s to %s' % (
+				virtual_dir, pxelinux_config_dir))
+		simul_fs = dt_filesys.SimulatedFileSystem()
+		simul_fs.add_handler('^/([0-9a-fA-F]{8})$',
+				lambda p, m: handle_pxelinux_config(p, m, cf, section,
+						pxelinux_config_dir))
+		fss.add_file_sys(simul_fs, virtual_dir)
+	elif type == 'native':
+		root_dir = cf.get(section, 'root')
+		logger.debug('Adding native overlay at %s to %s' % (
+				virtual_dir, root_dir))
+		fss.add_file_sys(tftpy.TftpNativeFileSys(root_dir), virtual_dir)
 	else:
 		raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
 				(key, cf.get(section, 'type'))
@@ -137,42 +159,28 @@ def main():
 	cf = SafeConfigParser()
 	cf.read(options.config_file)
 
-	if cf.has_option('pxe_linux', 'module_path'):
-		for path in cf.get('pxe_linux', 'module_path').split(':'):
-			sys.path.append(path)
-
-
 	# Parse configuration file again, this time specifically for logging.
 	logging.config.fileConfig(options.config_file)
 	logger.info('Loading dyntftpd')
 
-	simul_fs = filesys.SimulatedFileSystem()
+	if cf.has_option('daemon', 'module_path'):
+		for path in cf.get('daemon', 'module_path').split(':'):
+			sys.path.append(path)
 
-	domain_match = re.compile(cf.get('pxe_linux', 'domain_regex'))
-	cfg_dir = cf.get('pxe_linux', 'global_cfg_dir')
-	profile_dirs = cf.get('pxe_linux', 'profile_cfg_dirs')
-	simul_fs.add_handler('^/pxelinux.cfg/([0-9a-fA-F]{8})$',
-			lambda p, m: gen_pxelinux_cfg(p, m, cfg_dir, profile_dirs,
-					domain_match))
+	fss = dt_filesys.FileSystemStack()
 
 	# Add overlays
 	if cf.get('overlays', 'keys'):
 		for key in cf.get('overlays', 'keys').split(','):
-			add_overlay(simul_fs, cf, 'overlay_%s' % key.strip())
-
-
-	native_fs = tftpy.TftpNativeFileSys(cf.get('tftp', 'root'))
-
-	fss = filesys.FileSystemStack()
-	fss.add_file_sys(native_fs)
-	fss.add_file_sys(simul_fs)
+			add_overlay(fss, cf, 'overlay_%s' % key.strip())
 
 	server = tftpy.TftpCommonServer(fss)
 
 	# (Optionally) move to background
-	if cf.getboolean('tftp', 'background'):
+	if cf.has_option('daemon', 'background') and \
+			cf.getboolean('daemon', 'background'):
 		logger.debug('moving dyntftpd to background')
-		daemon.daemonise(pid_file = cf.get('tftp', 'pid_file'))
+		daemon.daemonise(pid_file = cf.get('daemon', 'pid_file'))
 
 	# Set signal handlers.
 	signal.signal(signal.SIGINT, sig_handler)

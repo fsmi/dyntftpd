@@ -1,6 +1,6 @@
 # filesys.py
 #
-# Copyright (C) 2008 Fabian Knittel <fabian.knittel@fsmi.uni-karlsruhe.de>
+# Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,15 +26,30 @@ class FileSystemStack(object):
 	def __init__(self):
 		self.file_systems = []
 
-	def add_file_sys(self, file_sys):
-		self.file_systems.append(file_sys)
+	def add_file_sys(self, file_sys, base_path = '/'):
+		base_path = os.path.normpath(base_path)
+		# The base_path should end with a slash.
+		if not base_path.endswith('/'):
+			base_path += '/'
+		self.file_systems.append((file_sys, base_path))
+
+	@staticmethod
+	def get_sub_path(base_path, path):
+		path = os.path.normpath(path)
+		if not path.startswith(base_path):
+			return None
+		return path[len(base_path) - 1:]
 
 	def get_path(self, path):
 		fs_path = None
-		for file_sys in self.file_systems:
-			fs_path = file_sys.get_path(path)
-			if fs_path.exists():
-				return fs_path
+		for file_sys, base_path in self.file_systems:
+			sub_path = self.get_sub_path(base_path, path)
+			logger.debug('base_path %s, path %s, sub_path %s' % (base_path,
+					path, sub_path))
+			if sub_path is not None:
+				fs_path = file_sys.get_path(sub_path)
+				if fs_path.exists():
+					return fs_path
 		return fs_path
 
 class SimulatedFileSystem(object):
