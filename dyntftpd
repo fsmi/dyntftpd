@@ -48,7 +48,7 @@ def open_newest_file(search_dir, prefix, path, match):
 	newest_fn = dt_file_ver_cmp.find_highest_file_ver(prefix, suffix,
 			search_dir)
 	if newest_fn is not None:
-		logger.info("determined newest file: %s" % newest_fn)
+		logger.debug("Determined newest file: %s" % newest_fn)
 		return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
 	else:
 		return None, 0
@@ -161,7 +161,7 @@ def main():
 
 	# Parse configuration file again, this time specifically for logging.
 	logging.config.fileConfig(options.config_file)
-	logger.info('Loading dyntftpd')
+	logger.debug('Loading dyntftpd')
 
 	if cf.has_option('daemon', 'module_path'):
 		for path in cf.get('daemon', 'module_path').split(':'):
@@ -192,7 +192,7 @@ def main():
 		logger.info('Shutdown requested: %s' % ex)
 	except:
 		logger.exception('Exception caught, aborting')
-	logger.info('Exiting dyntftpd')
+	logger.debug('Exiting dyntftpd')
 
 if __name__ == '__main__':
 	main()
