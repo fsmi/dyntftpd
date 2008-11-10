@@ -1,3 +1,12 @@
+dyntftpd (0.4-1) fsmi-etch; urgency=low
+
+  * New upstream release:
+    + tweaked message levels (less noise on startup)
+    + convert everything to absolute paths where possible
+  * Nicer PID file handling / init script.
+
+ -- Fabian Knittel <fabian.knittel@fsmi.uni-karlsruhe.de>  Mon, 10 Nov 2008 01:51:43 +0100
+
 dyntftpd (0.3-1) fsmi-etch; urgency=low
 
   * Initial release.
