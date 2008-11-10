@@ -32,7 +32,7 @@ set -e
 
 case "$1" in
   start)
-	log_daemon_msg "Starting $DESC:"
+	log_daemon_msg "Starting $DESC"
 
 	log_progress_msg "$NAME"
 	if ! start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
@@ -44,7 +44,7 @@ case "$1" in
 	log_end_msg 0
 	;;
   stop)
-	log_daemon_msg "Stopping $DESC:"
+	log_daemon_msg "Stopping $DESC"
 
 	log_progress_msg "$NAME"
 	start-stop-daemon --stop --quiet --pidfile /var/run/$NAME.pid
