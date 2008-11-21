@@ -41,7 +41,6 @@ class FileSystemStack(object):
 		return path[len(base_path) - 1:]
 
 	def get_path(self, path):
-		fs_path = None
 		for file_sys, base_path in self.file_systems:
 			sub_path = self.get_sub_path(base_path, path)
 			logger.debug('base_path %s, path %s, sub_path %s' % (base_path,
@@ -50,7 +49,37 @@ class FileSystemStack(object):
 				fs_path = file_sys.get_path(sub_path)
 				if fs_path.exists():
 					return fs_path
-		return fs_path
+		return UnknownFilePath(path)
+
+class UnknownFilePath(object):
+	"""UnknownFilePath is used as a fall-back path object, in case the
+	FileSystemStack found no file system that feels responsible for the path."""
+
+	def __init__(self, path):
+		self.path = path
+
+	def safe(self):
+		"""There is no direct file-system access, so we're always sure that
+		the path is safe. We'll catch any odd cases through the pattern
+		matching."""
+		return True
+
+	def exists(self):
+		return False
+
+	def open_read(self):
+		raise RuntimeError("Attempted to open UnknownFilePath(%s)" % self.path)
+
+	def get_path(self):
+		return self.path
+
+	def get_size(self):
+		raise RuntimeError("Attempted to get size of UnknownFilePath(%s)" % (
+				self.path))
+
+	def __str__(self):
+		return self.path
+
 
 class SimulatedFileSystem(object):
 	def __init__(self):
