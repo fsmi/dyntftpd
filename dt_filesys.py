@@ -103,9 +103,6 @@ class SimulatedFilePath(object):
 	def get_path(self):
 		return self.path
 
-	def get_full_path(self):
-		return self.path
-
 	def get_size(self):
 		return self.size
 
