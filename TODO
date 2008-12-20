@@ -1,7 +1,1 @@
-- create a debian package
-- use private modules to private namespace
-- support invocation via inetd
-- modules loaded from profile configuration files should not remain in memory
-  or should somehow be forced to reload the next time the profile configuration
-  is loaded. (This is currently done from within the profile configuration
-  files.)
+None, currently.
