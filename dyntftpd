@@ -148,20 +148,28 @@ def main():
 	parser = OptionParser()
 
 	parser.add_option("-c", "--config",
-					action = "store", dest = "config_file",
-					help = "Configuration file",
-					default = CONFIG_FILE)
+			action = "append", dest = "config_files",
+			help = "Configuration file",
+			default = [CONFIG_FILE])
 
 	(options, args) = parser.parse_args()
 	if len(args) != 0:
 		parser.error("incorrect number of arguments")
 
-	# Load configuration file.
+	# Load configuration file(s).
 	cf = SafeConfigParser()
-	cf.read(options.config_file)
+	for config_file in options.config_files:
+		cf.read(config_file)
 
-	# Parse configuration file again, this time specifically for logging.
-	logging.config.fileConfig(options.config_file)
+		# If there is a logging header, we assume that the file contains valid
+		# logging configuration data and feed it to the logging module.
+		# Unfortunately, we can't feed our configuration object to it, which
+		# would make things much easier.
+		tmp_cf = SafeConfigParser()
+		tmp_cf.read(config_file)
+		if tmp_cf.has_section('formatters'):
+			logging.config.fileConfig(config_file)
+
 	logger.debug('Loading dyntftpd')
 
 	if cf.has_option('daemon', 'module_path'):
