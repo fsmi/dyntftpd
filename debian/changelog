@@ -1,3 +1,9 @@
+dyntftpd (0.5-2) fsmi-etch; urgency=low
+
+  * Declare support for broader Python version range.
+
+ -- Fabian Knittel <fabian.knittel@fsmi.uni-karlsruhe.de>  Wed, 28 Jan 2009 01:23:50 +0100
+
 dyntftpd (0.5-1) fsmi-etch; urgency=low
 
   * New upstream release:
