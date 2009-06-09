@@ -1,3 +1,10 @@
+dyntftpd (0.5-3) fsmi-lenny; urgency=low
+
+  * Rebuild for lenny for python2.5 support. 0.5-2 did not change anythin in
+    etch environment.
+
+ -- Fabian Knittel <fabian.knittel@fsmi.uni-karlsruhe.de>  Tue, 09 Jun 2009 02:11:26 +0200
+
 dyntftpd (0.5-2) fsmi-etch; urgency=low
 
   * Declare support for broader Python version range.
