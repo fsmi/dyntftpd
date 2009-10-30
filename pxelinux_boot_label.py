@@ -80,6 +80,18 @@ class ChainBootLabel(BootLabel):
 		str += self.SPACES + "APPEND %s %d\n" % (self.hd, self.part)
 		return str
 
+class ELFBootLabel(BootLabel):
+    def __init_(self, name, kernel, append = None, **kwargs):
+        BootLabel.__init__(self, name, **kwargs)
+        self.kernel = kernel
+        self.append = append
+
+    def dump(self):
+        str = self.SPACES + "KERNEL %s\n" % self.kernel
+        if self.append:
+            str += self.SPACES + "APPEND %s\n" % self.append
+        return str
+
 class LinuxBootLabel(BootLabel):
 	def __init__(self, name, kernel, initrd, append, **kwargs):
 		BootLabel.__init__(self, name, **kwargs)
