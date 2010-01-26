@@ -208,7 +208,7 @@ def main():
 	if cf.has_option('tftp', 'port'):
 		port = cf.getint('tftp', 'port')
 	else:
-		port = ''
+		port = 69
 
 	try:
 		server.listen(listenip = host, listenport = port)
