@@ -200,8 +200,18 @@ def main():
 	signal.signal(signal.SIGINT, sig_handler)
 	signal.signal(signal.SIGTERM, sig_handler)
 
+	# Determine host and port.
+	if cf.has_option('tftp', 'host'):
+		host = cf.get('tftp', 'host')
+	else:
+		host = ''
+	if cf.has_option('tftp', 'port'):
+		port = cf.getint('tftp', 'port')
+	else:
+		port = ''
+
 	try:
-		server.listen(cf.get('tftp', 'host'), cf.getint('tftp', 'port'))
+		server.listen(listenip = host, listenport = port)
 	except SystemExit, ex:
 		logger.info('Shutdown requested: %s' % ex)
 	except:
