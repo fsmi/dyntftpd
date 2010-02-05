@@ -81,12 +81,14 @@ class UnknownFilePath(object):
 		return self.path
 
 
-class WindowsPathTranslatorFileSystem(object):
+class SanitiseRequestFileSystemFilter(object):
 	def __init__(self, fs):
 		self._fs = fs
 
 	def get_path(self, path):
 		path = path.replace('\\', '/')
+        if not path.startswith('/'):
+            path = '/' + path
 		return self._fs.get_path(path)
 
 class SimulatedFileSystem(object):
