@@ -81,6 +81,14 @@ class UnknownFilePath(object):
 		return self.path
 
 
+class WindowsPathTranslatorFileSystem(object):
+	def __init__(self, fs):
+		self._fs = fs
+
+	def get_path(self, path):
+		path = path.replace('\\', '/')
+		return self._fs.get_path(path)
+
 class SimulatedFileSystem(object):
 	def __init__(self):
 		self.handlers = []

@@ -189,7 +189,8 @@ def main():
 		for key in cf.get('overlays', 'keys').split(','):
 			add_overlay(fss, cf, 'overlay_%s' % key.strip())
 
-	server = tftpy.TftpCommonServer(fss)
+	wpt = dt_filesys.WindowsPathTranslatorFileSystem(fss)
+	server = tftpy.TftpCommonServer(wpt)
 
 	# (Optionally) move to background
 	if background:
