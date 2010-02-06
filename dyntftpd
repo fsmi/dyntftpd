@@ -78,8 +78,8 @@ def handle_pxelinux_config(path, match, section, pxelinux_config_dirs,
 		return None, 0
 
 	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	profile_file = os.path.join(pxelinux_config_dirs,
-			'%s_cfg.py' % hostname_match.group(1))
+	hostname = hostname_match.group(1)
+	profile_file = os.path.join(pxelinux_config_dirs, '%s_cfg.py' % hostname)
 	if not os.path.exists(profile_file):
 		logger.debug('No configuration found for host %s (%s)' % (
 				host, profile_file))
@@ -90,6 +90,8 @@ def handle_pxelinux_config(path, match, section, pxelinux_config_dirs,
 
 	kwargs = {
 			'ip': ip,
+			'fqdn': host,
+			'hostname': hostname,
 			'global_cfg_dir': global_cfg_dir
 			}
 	cfg_data = config_space['create_head_str'](**kwargs)
