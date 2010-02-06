@@ -87,8 +87,8 @@ class SanitiseRequestFileSystemFilter(object):
 
 	def get_path(self, path):
 		path = path.replace('\\', '/')
-        if not path.startswith('/'):
-            path = '/' + path
+		if not path.startswith('/'):
+			path = '/' + path
 		return self._fs.get_path(path)
 
 class SimulatedFileSystem(object):
