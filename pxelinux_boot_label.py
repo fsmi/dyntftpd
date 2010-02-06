@@ -112,4 +112,4 @@ class LinuxNfsRootBootLabel(LinuxBootLabel):
 				(ramdisk_size, nfsroot, append)
 		LinuxBootLabel.__init__(self, name, kernel, initrd, append, **kwargs)
 
-# vim:set ft=python ts=4:
+# vim:set ft=python ts=4 noet:

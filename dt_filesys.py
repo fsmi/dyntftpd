@@ -148,4 +148,4 @@ class SimulatedFilePath(object):
 	def __str__(self):
 		return self.path
 
-# vim:set ft=python ts=4:
+# vim:set ft=python ts=4 noet:
