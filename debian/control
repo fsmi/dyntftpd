@@ -9,7 +9,7 @@ XS-Python-Version: >= 2.4, << 3.0
 Package: dyntftpd
 Architecture: all
 Depends: ${python:Depends}, adduser, python-daemon (>= 0.1.1-1),
- python-tftpy (>= 0.4.5-1~fsmi6)
+ python-tftpy (>= 0.4.6-1~fsmi2)
 Description: TFTP daemon with support for dynamic generation of content
  This tftp daemon provides hooks to generate content on the fly using
  user-provided Python code or a set of built-in modes.
