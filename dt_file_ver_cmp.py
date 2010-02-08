@@ -84,4 +84,4 @@ def find_highest_file_ver(base, suffix, search_dir):
 	else:
 		return None
 
-# vim:set ft=python ts=4:
+# vim:set ft=python ts=4 noet:
