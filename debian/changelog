@@ -1,3 +1,15 @@
+dyntftpd (0.9-1) fsmi-lenny; urgency=low
+
+  * New upstream release:
+    + "newest_kernel" overlay now also properly works with strings instead of
+      numbers in Debian kernel versions.
+    + Renamed ELFBootLabel to KernelBootLabel.
+  * Build-depend on debhelper 7 and use minimal rules file.
+  * Switch from python-central to python-support.
+  * Bump standards version to 3.8.4, no changes.
+
+ -- Fabian Knittel <fabian.knittel@avona.com>  Wed, 17 Mar 2010 16:19:05 +0100
+
 dyntftpd (0.8-1) fsmi-lenny; urgency=low
 
   * New upstream release:
