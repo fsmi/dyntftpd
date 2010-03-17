@@ -1,6 +1,6 @@
 # file_ver_cmp.py
 #
-# Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
+# Copyright (C) 2008, 2010 Fabian Knittel <fabian.knittel@avona.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,24 @@ def split_file_ver(base, suffix, name):
 	version."""
 	return name[len(base):-len(suffix)]
 
+def cmp_maybe_int(val1, val2):
+	"""Compare two string values. In case they're numeric, compare the
+	numeric values, otherwise do a alphanumeric compare. In case only one of
+	them is numeric, the numeric value wins.
+	"""
+	try:
+		int_val1 = int(val1)
+	except:
+		int_val1 = None
+	try:
+		int_val2 = int(val2)
+	except:
+		int_val2 = None
+
+	if int_val1 is not None or int_val2 is not None:
+		return cmp(int_val1, int_val2)
+	return cmp(val1, val2)
+
 def cmp_dotted_ver(ver1, ver2):
 	# Trivial case.
 	if ver1 == ver2:
@@ -38,7 +56,7 @@ def cmp_dotted_ver(ver1, ver2):
 	i = 0
 	while i < len(vers1) and i < len(vers2):
 		if vers1[i] != vers2[i]:
-			return cmp(int(vers1[i]), int(vers2[i]))
+			return cmp_maybe_int(vers1[i], vers2[i])
 		i += 1
 
 	# The longer version with otherwise equal components is the newer / higher
@@ -57,7 +75,7 @@ def cmp_ver(ver1, ver2):
 	front2, back2 = split_ver(ver2)
 	# If the front version is equal, compare the appended version.
 	if front1 == front2:
-		return cmp(int(back1), int(back2))
+		return cmp_maybe_int(back1, back2)
 
 	return cmp_dotted_ver(front1, front2)
 
