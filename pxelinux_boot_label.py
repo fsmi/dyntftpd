@@ -92,7 +92,7 @@ class LinuxBootLabel(KernelBootLabel):
                 append='initrd=%s %s' % (initrd, append), **kwargs)
 
 class LinuxNfsRootBootLabel(LinuxBootLabel):
-    def __init__(self, name, kernel, initrd, append='', nfsroot,
+    def __init__(self, name, kernel, initrd, append, nfsroot,
             ramdisk_size = 14332, **kwargs):
         append = "ramdisk_size=%d root=/dev/nfs nfsroot=%s ip=dhcp %s" % \
                 (ramdisk_size, nfsroot, append)
