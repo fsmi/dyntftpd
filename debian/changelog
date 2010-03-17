@@ -7,6 +7,7 @@ dyntftpd (0.9-1) fsmi-lenny; urgency=low
   * Build-depend on debhelper 7 and use minimal rules file.
   * Switch from python-central to python-support.
   * Bump standards version to 3.8.4, no changes.
+  * Make init script properly depend on $remote_fs, as we need /usr.
 
  -- Fabian Knittel <fabian.knittel@avona.com>  Wed, 17 Mar 2010 16:19:05 +0100
 
