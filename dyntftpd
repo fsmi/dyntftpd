@@ -152,7 +152,7 @@ def add_overlay(fss, cf, section):
     overlay_type = cf.get(section, 'type')
     if overlay_type in OVERLAY_TYPES:
         fs = OVERLAY_TYPES[overlay_type](cf, section, virtual_dir)
-        fss.add_file_sys(fs)
+        fss.add_file_sys(fs, virtual_dir)
     else:
         raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
                 (key, cf.get(section, 'type'))
