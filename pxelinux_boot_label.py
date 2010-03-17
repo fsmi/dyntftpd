@@ -1,6 +1,6 @@
 # boot_label.py
 #
-# Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
+# Copyright (C) 2008, 2010 Fabian Knittel <fabian.knittel@avona.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,18 +69,7 @@ class LocalBootLabel(BootLabel):
     def dump(self):
         return self.SPACES + "localboot 0\n"
 
-class ChainBootLabel(BootLabel):
-    def __init__(self, name, hd, part, **kwargs):
-        BootLabel.__init__(self, name, **kwargs)
-        self.hd = hd
-        self.part = part
-
-    def dump(self):
-        str = self.SPACES + "KERNEL chain.c32\n"
-        str += self.SPACES + "APPEND %s %d\n" % (self.hd, self.part)
-        return str
-
-class ELFBootLabel(BootLabel):
+class KernelBootLabel(BootLabel):
     def __init_(self, name, kernel, append = None, **kwargs):
         BootLabel.__init__(self, name, **kwargs)
         self.kernel = kernel
@@ -92,21 +81,23 @@ class ELFBootLabel(BootLabel):
             str += self.SPACES + "APPEND %s\n" % self.append
         return str
 
-class LinuxBootLabel(BootLabel):
-    def __init__(self, name, kernel, initrd, append, **kwargs):
-        BootLabel.__init__(self, name, **kwargs)
-        self.kernel = kernel
-        self.initrd = initrd
-        self.append = append
+class ELFBootLabel(KernelBootLabel):
+    """This is a legacy label.  Please use KernelBootLabel instead.
+    """
+    pass
 
-    def dump(self):
-        str = self.SPACES + "KERNEL %s\n" % self.kernel
-        str += self.SPACES + "APPEND initrd=%s %s\n" % (self.initrd,
-                self.append)
-        return str
+class ChainBootLabel(KernelBootLabel):
+    def __init__(self, name, hd, part, **kwargs):
+        KernelBootLabel.__init__(self, name, kernel='chain.c32',
+                append='%s %d' % (hd, part), **kwargs)
+
+class LinuxBootLabel(KernelBootLabel):
+    def __init__(self, name, kernel, initrd, append='', **kwargs):
+        KernelBootLabel.__init__(self, name, kernel=kernel,
+                append='initrd=%s %s' % (initrd, append), **kwargs)
 
 class LinuxNfsRootBootLabel(LinuxBootLabel):
-    def __init__(self, name, kernel, initrd, append, nfsroot,
+    def __init__(self, name, kernel, initrd, append='', nfsroot,
             ramdisk_size = 14332, **kwargs):
         append = "ramdisk_size=%d root=/dev/nfs nfsroot=%s ip=dhcp %s" % \
                 (ramdisk_size, nfsroot, append)
