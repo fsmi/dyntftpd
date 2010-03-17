@@ -70,7 +70,7 @@ class LocalBootLabel(BootLabel):
         return self.SPACES + "localboot 0\n"
 
 class KernelBootLabel(BootLabel):
-    def __init_(self, name, kernel, append = None, **kwargs):
+    def __init__(self, name, kernel, append=None, **kwargs):
         BootLabel.__init__(self, name, **kwargs)
         self.kernel = kernel
         self.append = append
