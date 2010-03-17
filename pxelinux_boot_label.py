@@ -81,11 +81,6 @@ class KernelBootLabel(BootLabel):
             str += self.SPACES + "APPEND %s\n" % self.append
         return str
 
-class ELFBootLabel(KernelBootLabel):
-    """This is a legacy label.  Please use KernelBootLabel instead.
-    """
-    pass
-
 class ChainBootLabel(KernelBootLabel):
     def __init__(self, name, hd, part, **kwargs):
         KernelBootLabel.__init__(self, name, kernel='chain.c32',
