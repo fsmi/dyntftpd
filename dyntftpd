@@ -107,40 +107,52 @@ class SignalReceived(SystemExit):
 def sig_handler(signum, frame):
     raise SignalReceived, int(signum)
 
+def add_newest_kernel_overlay(cf, section, virtual_dir):
+    image_dir = os.path.abspath(cf.get(section, 'image_dir'))
+    logger.debug('Adding kernel image overlay at %s to %s' % (
+            virtual_dir, image_dir))
+    fs = dt_filesys.SimulatedFileSystem()
+    fs.add_handler('^/vmlinuz-([^/]+)$',
+            lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
+    fs.add_handler('^/initrd.img-([^/]+)$',
+            lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
+    return fs
+
+def add_pxelinux_config_overlay(cf, section, virtual_dir):
+    pxelinux_config_dir = os.path.abspath(cf.get(section,
+            'pxelinux_config_dir'))
+    global_cfg_dir = os.path.abspath(cf.get(section, 'global_cfg_dir'))
+    hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
+    logger.debug('Adding client config overlay at %s to %s' % (
+            virtual_dir, pxelinux_config_dir))
+    fs = dt_filesys.SimulatedFileSystem()
+    fs.add_handler('^/([0-9a-fA-F]{8})$',
+            lambda p, m: handle_pxelinux_config(p, m, section,
+                    pxelinux_config_dir, global_cfg_dir, hostname_regex))
+    return fs
+
+def add_native_overlay(cf, section, virtual_dir):
+    root_dir = os.path.abspath(cf.get(section, 'root'))
+    logger.debug('Adding native overlay at %s to %s' % (
+            virtual_dir, root_dir))
+    return tftpy.TftpNativeFileSys(root_dir)
+
+OVERLAY_TYPES = {
+    'newest_kernel':add_newest_kernel_overlay,
+    'pxelinux_config':add_pxelinux_config_overlay,
+    'native':add_native_overlay,
+    }
+
 def add_overlay(fss, cf, section):
     virtual_dir = cf.get(section, 'virtual_dir')
     if virtual_dir[0] != '/':
         raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
                 (key, virtual_dir)
 
-    type = cf.get(section, 'type')
-    if type == 'newest_kernel':
-        image_dir = os.path.abspath(cf.get(section, 'image_dir'))
-        logger.debug('Adding kernel image overlay at %s to %s' % (
-                virtual_dir, image_dir))
-        simul_fs = dt_filesys.SimulatedFileSystem()
-        simul_fs.add_handler('^/vmlinuz-([^/]+)$',
-                lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
-        simul_fs.add_handler('^/initrd.img-([^/]+)$',
-                lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
-        fss.add_file_sys(simul_fs, virtual_dir)
-    elif type == 'pxelinux_config':
-        pxelinux_config_dir = os.path.abspath(cf.get(section,
-                'pxelinux_config_dir'))
-        global_cfg_dir = os.path.abspath(cf.get(section, 'global_cfg_dir'))
-        hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
-        logger.debug('Adding client config overlay at %s to %s' % (
-                virtual_dir, pxelinux_config_dir))
-        simul_fs = dt_filesys.SimulatedFileSystem()
-        simul_fs.add_handler('^/([0-9a-fA-F]{8})$',
-                lambda p, m: handle_pxelinux_config(p, m, section,
-                        pxelinux_config_dir, global_cfg_dir, hostname_regex))
-        fss.add_file_sys(simul_fs, virtual_dir)
-    elif type == 'native':
-        root_dir = os.path.abspath(cf.get(section, 'root'))
-        logger.debug('Adding native overlay at %s to %s' % (
-                virtual_dir, root_dir))
-        fss.add_file_sys(tftpy.TftpNativeFileSys(root_dir), virtual_dir)
+    overlay_type = cf.get(section, 'type')
+    if overlay_type in OVERLAY_TYPES:
+        fs = OVERLAY_TYPES[overlay_type](cf, section, virtual_dir)
+        fss.add_file_sys(fs)
     else:
         raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
                 (key, cf.get(section, 'type'))
