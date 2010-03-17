@@ -43,189 +43,189 @@ import dt_filesys
 logger = logging.getLogger('dyntftpd')
 
 def open_newest_file(search_dir, prefix, path, match):
-	prefix = prefix + '-'
-	suffix = '-' + match.group(1)
-	newest_fn = dt_file_ver_cmp.find_highest_file_ver(prefix, suffix,
-			search_dir)
-	if newest_fn is not None:
-		logger.debug("Determined newest file: %s" % newest_fn)
-		return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
-	else:
-		return None, 0
+    prefix = prefix + '-'
+    suffix = '-' + match.group(1)
+    newest_fn = dt_file_ver_cmp.find_highest_file_ver(prefix, suffix,
+            search_dir)
+    if newest_fn is not None:
+        logger.debug("Determined newest file: %s" % newest_fn)
+        return open(newest_fn, 'rb'), os.stat(newest_fn).st_size
+    else:
+        return None, 0
 
 def hex_to_ip(hex):
-	assert(len(hex) == 8)
-	ip_nums = []
-	i = 0
-	while i < len(hex):
-		num = hex[i:i + 2]
-		ip_nums.append(str(int(num, 16)))
-		i += 2
-	return '.'.join(ip_nums)
+    assert(len(hex) == 8)
+    ip_nums = []
+    i = 0
+    while i < len(hex):
+        num = hex[i:i + 2]
+        ip_nums.append(str(int(num, 16)))
+        i += 2
+    return '.'.join(ip_nums)
 
 def handle_pxelinux_config(path, match, section, pxelinux_config_dirs,
-		global_cfg_dir, hostname_regex):
-	hex_ip = match.group(1)
-	ip = hex_to_ip(hex_ip)
-	try:
-		host = socket.gethostbyaddr(ip)[0]
-	except socket.herror:
-		logger.debug('Could not resolve %s/%s' % (hex_ip, ip))
-		return None, 0
-	logger.debug('Searching for %s/%s/%s' % (hex_ip, ip, host))
-	hostname_match = hostname_regex.search(host)
-	if hostname_match is None:
-		return None, 0
+        global_cfg_dir, hostname_regex):
+    hex_ip = match.group(1)
+    ip = hex_to_ip(hex_ip)
+    try:
+        host = socket.gethostbyaddr(ip)[0]
+    except socket.herror:
+        logger.debug('Could not resolve %s/%s' % (hex_ip, ip))
+        return None, 0
+    logger.debug('Searching for %s/%s/%s' % (hex_ip, ip, host))
+    hostname_match = hostname_regex.search(host)
+    if hostname_match is None:
+        return None, 0
 
-	logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
-	hostname = hostname_match.group(1)
-	profile_file = os.path.join(pxelinux_config_dirs, '%s_cfg.py' % hostname)
-	if not os.path.exists(profile_file):
-		logger.debug('No configuration found for host %s (%s)' % (
-				host, profile_file))
-		return None, 0
+    logger.debug('Matched "%s", which is "%s" (%s)' % (path, host, ip))
+    hostname = hostname_match.group(1)
+    profile_file = os.path.join(pxelinux_config_dirs, '%s_cfg.py' % hostname)
+    if not os.path.exists(profile_file):
+        logger.debug('No configuration found for host %s (%s)' % (
+                host, profile_file))
+        return None, 0
 
-	config_space = {}
-	execfile(profile_file, config_space)
+    config_space = {}
+    execfile(profile_file, config_space)
 
-	kwargs = {
-			'ip': ip,
-			'fqdn': host,
-			'hostname': hostname,
-			'global_cfg_dir': global_cfg_dir
-			}
-	cfg_data = config_space['create_head_str'](**kwargs)
-	for label in config_space['create_labels'](**kwargs):
-		cfg_data += str(label)
+    kwargs = {
+            'ip': ip,
+            'fqdn': host,
+            'hostname': hostname,
+            'global_cfg_dir': global_cfg_dir
+            }
+    cfg_data = config_space['create_head_str'](**kwargs)
+    for label in config_space['create_labels'](**kwargs):
+        cfg_data += str(label)
 
-	return StringIO(cfg_data), len(cfg_data)
+    return StringIO(cfg_data), len(cfg_data)
 
 class SignalReceived(SystemExit):
-	def __init__(self, signum):
-		SystemExit.__init__(self, "signal %d" % signum)
+    def __init__(self, signum):
+        SystemExit.__init__(self, "signal %d" % signum)
 
 def sig_handler(signum, frame):
-	raise SignalReceived, int(signum)
+    raise SignalReceived, int(signum)
 
 def add_overlay(fss, cf, section):
-	virtual_dir = cf.get(section, 'virtual_dir')
-	if virtual_dir[0] != '/':
-		raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
-				(key, virtual_dir)
+    virtual_dir = cf.get(section, 'virtual_dir')
+    if virtual_dir[0] != '/':
+        raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
+                (key, virtual_dir)
 
-	type = cf.get(section, 'type')
-	if type == 'newest_kernel':
-		image_dir = os.path.abspath(cf.get(section, 'image_dir'))
-		logger.debug('Adding kernel image overlay at %s to %s' % (
-				virtual_dir, image_dir))
-		simul_fs = dt_filesys.SimulatedFileSystem()
-		simul_fs.add_handler('^/vmlinuz-([^/]+)$',
-				lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
-		simul_fs.add_handler('^/initrd.img-([^/]+)$',
-				lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
-		fss.add_file_sys(simul_fs, virtual_dir)
-	elif type == 'pxelinux_config':
-		pxelinux_config_dir = os.path.abspath(cf.get(section,
-				'pxelinux_config_dir'))
-		global_cfg_dir = os.path.abspath(cf.get(section, 'global_cfg_dir'))
-		hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
-		logger.debug('Adding client config overlay at %s to %s' % (
-				virtual_dir, pxelinux_config_dir))
-		simul_fs = dt_filesys.SimulatedFileSystem()
-		simul_fs.add_handler('^/([0-9a-fA-F]{8})$',
-				lambda p, m: handle_pxelinux_config(p, m, section,
-						pxelinux_config_dir, global_cfg_dir, hostname_regex))
-		fss.add_file_sys(simul_fs, virtual_dir)
-	elif type == 'native':
-		root_dir = os.path.abspath(cf.get(section, 'root'))
-		logger.debug('Adding native overlay at %s to %s' % (
-				virtual_dir, root_dir))
-		fss.add_file_sys(tftpy.TftpNativeFileSys(root_dir), virtual_dir)
-	else:
-		raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
-				(key, cf.get(section, 'type'))
+    type = cf.get(section, 'type')
+    if type == 'newest_kernel':
+        image_dir = os.path.abspath(cf.get(section, 'image_dir'))
+        logger.debug('Adding kernel image overlay at %s to %s' % (
+                virtual_dir, image_dir))
+        simul_fs = dt_filesys.SimulatedFileSystem()
+        simul_fs.add_handler('^/vmlinuz-([^/]+)$',
+                lambda p, m: open_newest_file(image_dir, 'vmlinuz', p, m))
+        simul_fs.add_handler('^/initrd.img-([^/]+)$',
+                lambda p, m: open_newest_file(image_dir, 'initrd.img', p, m))
+        fss.add_file_sys(simul_fs, virtual_dir)
+    elif type == 'pxelinux_config':
+        pxelinux_config_dir = os.path.abspath(cf.get(section,
+                'pxelinux_config_dir'))
+        global_cfg_dir = os.path.abspath(cf.get(section, 'global_cfg_dir'))
+        hostname_regex = re.compile(cf.get(section, 'hostname_regex'))
+        logger.debug('Adding client config overlay at %s to %s' % (
+                virtual_dir, pxelinux_config_dir))
+        simul_fs = dt_filesys.SimulatedFileSystem()
+        simul_fs.add_handler('^/([0-9a-fA-F]{8})$',
+                lambda p, m: handle_pxelinux_config(p, m, section,
+                        pxelinux_config_dir, global_cfg_dir, hostname_regex))
+        fss.add_file_sys(simul_fs, virtual_dir)
+    elif type == 'native':
+        root_dir = os.path.abspath(cf.get(section, 'root'))
+        logger.debug('Adding native overlay at %s to %s' % (
+                virtual_dir, root_dir))
+        fss.add_file_sys(tftpy.TftpNativeFileSys(root_dir), virtual_dir)
+    else:
+        raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
+                (key, cf.get(section, 'type'))
 
 def main():
-	# Parse command-line options.
-	parser = OptionParser()
+    # Parse command-line options.
+    parser = OptionParser()
 
-	parser.add_option("-c", "--config",
-			action = "append", dest = "config_files",
-			help = "Configuration file",
-			default = [CONFIG_FILE])
+    parser.add_option("-c", "--config",
+            action = "append", dest = "config_files",
+            help = "Configuration file",
+            default = [CONFIG_FILE])
 
-	(options, args) = parser.parse_args()
-	if len(args) != 0:
-		parser.error("incorrect number of arguments")
+    (options, args) = parser.parse_args()
+    if len(args) != 0:
+        parser.error("incorrect number of arguments")
 
-	# Load configuration file(s).
-	cf = SafeConfigParser()
-	for config_file in options.config_files:
-		cf.read(config_file)
+    # Load configuration file(s).
+    cf = SafeConfigParser()
+    for config_file in options.config_files:
+        cf.read(config_file)
 
-		# If there is a logging header, we assume that the file contains valid
-		# logging configuration data and feed it to the logging module.
-		# Unfortunately, we can't feed our configuration object to it, which
-		# would make things much easier.
-		tmp_cf = SafeConfigParser()
-		tmp_cf.read(config_file)
-		if tmp_cf.has_section('formatters'):
-			logging.config.fileConfig(config_file)
+        # If there is a logging header, we assume that the file contains valid
+        # logging configuration data and feed it to the logging module.
+        # Unfortunately, we can't feed our configuration object to it, which
+        # would make things much easier.
+        tmp_cf = SafeConfigParser()
+        tmp_cf.read(config_file)
+        if tmp_cf.has_section('formatters'):
+            logging.config.fileConfig(config_file)
 
-	logger.debug('Loading dyntftpd')
+    logger.debug('Loading dyntftpd')
 
-	if cf.has_option('daemon', 'module_path'):
-		for path in cf.get('daemon', 'module_path').split(':'):
-			sys.path.append(path)
+    if cf.has_option('daemon', 'module_path'):
+        for path in cf.get('daemon', 'module_path').split(':'):
+            sys.path.append(path)
 
-	background = False
-	if cf.has_option('daemon', 'background') and \
-			cf.getboolean('daemon', 'background'):
-		background = True
-		pid_file = os.path.abspath(cf.get('daemon', 'pid_file'))
+    background = False
+    if cf.has_option('daemon', 'background') and \
+            cf.getboolean('daemon', 'background'):
+        background = True
+        pid_file = os.path.abspath(cf.get('daemon', 'pid_file'))
 
-	fss = dt_filesys.FileSystemStack()
+    fss = dt_filesys.FileSystemStack()
 
-	# Add overlays
-	if cf.get('overlays', 'keys'):
-		for key in cf.get('overlays', 'keys').split(','):
-			add_overlay(fss, cf, 'overlay_%s' % key.strip())
+    # Add overlays
+    if cf.get('overlays', 'keys'):
+        for key in cf.get('overlays', 'keys').split(','):
+            add_overlay(fss, cf, 'overlay_%s' % key.strip())
 
-	sr = dt_filesys.SanitiseRequestFileSystemFilter(fss)
-	server = tftpy.TftpCommonServer(sr)
+    sr = dt_filesys.SanitiseRequestFileSystemFilter(fss)
+    server = tftpy.TftpCommonServer(sr)
 
-	# (Optionally) move to background
-	if background:
-		logger.debug('moving dyntftpd to background')
-		daemon.daemonise(pid_file = pid_file)
+    # (Optionally) move to background
+    if background:
+        logger.debug('moving dyntftpd to background')
+        daemon.daemonise(pid_file = pid_file)
 
-	# Set signal handlers.
-	signal.signal(signal.SIGINT, sig_handler)
-	signal.signal(signal.SIGTERM, sig_handler)
+    # Set signal handlers.
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
 
-	# Determine host and port.
-	if cf.has_option('tftp', 'host'):
-		host = cf.get('tftp', 'host')
-	else:
-		host = ''
-	if cf.has_option('tftp', 'port'):
-		port = cf.getint('tftp', 'port')
-	else:
-		port = 69
+    # Determine host and port.
+    if cf.has_option('tftp', 'host'):
+        host = cf.get('tftp', 'host')
+    else:
+        host = ''
+    if cf.has_option('tftp', 'port'):
+        port = cf.getint('tftp', 'port')
+    else:
+        port = 69
 
-	try:
-		server.listen(listenip = host, listenport = port)
-	except SystemExit, ex:
-		logger.info('Shutdown requested: %s' % ex)
-	except:
-		logger.exception('Exception caught, aborting')
-	logger.debug('Exiting dyntftpd')
+    try:
+        server.listen(listenip = host, listenport = port)
+    except SystemExit, ex:
+        logger.info('Shutdown requested: %s' % ex)
+    except:
+        logger.exception('Exception caught, aborting')
+    logger.debug('Exiting dyntftpd')
 
-	if background:
-		# Clean up the PID file.
-		os.remove(pid_file)
+    if background:
+        # Clean up the PID file.
+        os.remove(pid_file)
 
 if __name__ == '__main__':
-	main()
+    main()
 
-# vim:set ft=python ts=4 noet:
+# vim:set ft=python sw=4 et:
