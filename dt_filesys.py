@@ -23,86 +23,86 @@ import os
 logger = logging.getLogger('dyntftpd.fs')
 
 class FileSystemStack(object):
-	def __init__(self):
-		self.file_systems = []
+    def __init__(self):
+        self.file_systems = []
 
-	def add_file_sys(self, file_sys, base_path = '/'):
-		base_path = os.path.normpath(base_path)
-		# The base_path should end with a slash.
-		if not base_path.endswith('/'):
-			base_path += '/'
-		self.file_systems.append((file_sys, base_path))
+    def add_file_sys(self, file_sys, base_path = '/'):
+        base_path = os.path.normpath(base_path)
+        # The base_path should end with a slash.
+        if not base_path.endswith('/'):
+            base_path += '/'
+        self.file_systems.append((file_sys, base_path))
 
-	@staticmethod
-	def get_sub_path(base_path, path):
-		path = os.path.normpath(path)
-		if not path.startswith(base_path):
-			return None
-		return path[len(base_path) - 1:]
+    @staticmethod
+    def get_sub_path(base_path, path):
+        path = os.path.normpath(path)
+        if not path.startswith(base_path):
+            return None
+        return path[len(base_path) - 1:]
 
-	def get_path(self, path):
-		for file_sys, base_path in self.file_systems:
-			sub_path = self.get_sub_path(base_path, path)
-			logger.debug('base_path %s, path %s, sub_path %s' % (base_path,
-					path, sub_path))
-			if sub_path is not None:
-				fs_path = file_sys.get_path(sub_path)
-				if fs_path is not None:
-					return fs_path
-		return None
+    def get_path(self, path):
+        for file_sys, base_path in self.file_systems:
+            sub_path = self.get_sub_path(base_path, path)
+            logger.debug('base_path %s, path %s, sub_path %s' % (base_path,
+                    path, sub_path))
+            if sub_path is not None:
+                fs_path = file_sys.get_path(sub_path)
+                if fs_path is not None:
+                    return fs_path
+        return None
 
 class SanitiseRequestFileSystemFilter(object):
-	def __init__(self, fs):
-		self._fs = fs
+    def __init__(self, fs):
+        self._fs = fs
 
-	def get_path(self, path):
-		path = path.replace('\\', '/')
-		if not path.startswith('/'):
-			path = '/' + path
-		return self._fs.get_path(path)
+    def get_path(self, path):
+        path = path.replace('\\', '/')
+        if not path.startswith('/'):
+            path = '/' + path
+        return self._fs.get_path(path)
 
 class SimulatedFileSystem(object):
-	def __init__(self):
-		self.handlers = []
+    def __init__(self):
+        self.handlers = []
 
-	def add_handler(self, regex, handler_func):
-		self.handlers.append((regex, handler_func))
+    def add_handler(self, regex, handler_func):
+        self.handlers.append((regex, handler_func))
 
-	def get_path(self, path):
-		if len(path) > 0 and path[0] != '/':
-			path = '/' + path
-		path = os.path.normpath(path)
+    def get_path(self, path):
+        if len(path) > 0 and path[0] != '/':
+            path = '/' + path
+        path = os.path.normpath(path)
 
-		# Find matching handler and execute it.
-		for regex, handler in self.handlers:
-			logger.debug('Matching %s against %s' % (regex, path))
-			match = re.search(regex, path)
-			if match is not None:
-				fileobj, size = handler(path, match)
-				if fileobj is not None:
-					return SimulatedFilePath(path, fileobj, size)
-					break
-				else:
-					logger.info("Path '%s' matched handler's regex '%s', but " \
-							"handler came back empty." % (path, regex))
-		return None
+        # Find matching handler and execute it.
+        for regex, handler in self.handlers:
+            logger.debug('Matching %s against %s' % (regex, path))
+            match = re.search(regex, path)
+            if match is not None:
+                fileobj, size = handler(path, match)
+                if fileobj is not None:
+                    return SimulatedFilePath(path, fileobj, size)
+                    break
+                else:
+                    logger.info("Path '%s' matched handler's regex '%s', but " \
+                            "handler came back empty." % (path, regex))
+        return None
 
 class SimulatedFilePath(object):
-	def __init__(self, path, fileobj, size):
-		self.path = path
-		self.fileobj = fileobj
-		self.size = size
+    def __init__(self, path, fileobj, size):
+        self.path = path
+        self.fileobj = fileobj
+        self.size = size
 
-	def open_read(self):
-		return self.fileobj
+    def open_read(self):
+        return self.fileobj
 
-	def get_path(self):
-		return self.path
+    def get_path(self):
+        return self.path
 
-	def get_size(self):
-		return self.size
+    def get_size(self):
+        return self.size
 
-	def __str__(self):
-		return self.path
+    def __str__(self):
+        return self.path
 
-# vim:set ft=python ts=4 noet:
+# vim:set ft=python sw=4 et:
