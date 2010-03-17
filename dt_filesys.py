@@ -1,6 +1,6 @@
 # filesys.py
 #
-# Copyright (C) 2008 Fabian Knittel <fabian.knittel@avona.com>
+# Copyright (C) 2008, 2010 Fabian Knittel <fabian.knittel@avona.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 import re
 import logging
 import os
+import tftpy
 
 logger = logging.getLogger('dyntftpd.fs')
 
@@ -104,5 +105,47 @@ class SimulatedFilePath(object):
 
     def __str__(self):
         return self.path
+
+def find_case_insensitive_path(base_path, path):
+    full_path = base_path
+    real_path = ''
+    logger.debug('base_path: %s, path: %s' % (base_path, path))
+    for path_part in path.split('/'):
+        if path_part == '':
+            continue
+        path_part = path_part.lower()
+        precise_path_part = None
+        if os.path.exists(os.path.join(base_path, real_path, path_part)):
+            # There's a case sensitive match, we prefer that.
+            precise_path_part = path_part
+        else:
+            for fn in os.listdir(full_path):
+                if fn.lower() == path_part:
+                    # We found a matching path part.
+                    precise_path_part = fn
+                    break
+        if precise_path_part is not None:
+            real_path = os.path.join(real_path, precise_path_part)
+            full_path = os.path.abspath(os.path.join(base_path, real_path))
+        else:
+            # There were no matches for this component.
+            logger.debug('  no match for component %s' % (path_part))
+            return None
+    logger.debug('real_path: %s' % real_path)
+    return real_path
+
+class CaseInsensitiveFileSys(tftpy.TftpNativeFileSys):
+    def get_path(self, path):
+        """Walks the path and searches for path elements that match the
+        requested path, but does so in a case insensitive way.
+        """
+        real_path = find_case_insensitive_path(self.root, path)
+        if real_path is None:
+            # There is no such file, even with case-insensitive search.
+            return None
+        if real_path != path:
+            logger.info('case-translated requested path "%s" to "%s"' % (path,
+                   real_path))
+        return tftpy.TftpNativeFileSys.get_path(self, real_path)
 
 # vim:set ft=python sw=4 et:

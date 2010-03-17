@@ -133,9 +133,17 @@ def add_pxelinux_config_overlay(cf, section, virtual_dir):
 
 def add_native_overlay(cf, section, virtual_dir):
     root_dir = os.path.abspath(cf.get(section, 'root'))
-    logger.debug('Adding native overlay at %s to %s' % (
-            virtual_dir, root_dir))
-    return tftpy.TftpNativeFileSys(root_dir)
+    case_sensitive = True
+    if cf.has_option(section, 'case_sensitive'):
+        case_sensitive = cf.getboolean(section, 'case_sensitive')
+    if case_sensitive:
+        logger.debug('Adding native overlay at %s to %s' % (
+                virtual_dir, root_dir))
+        return tftpy.TftpNativeFileSys(root_dir)
+    else:
+        logger.debug('Adding case-insensitive native overlay at %s to %s' % (
+                virtual_dir, root_dir))
+        return dt_filesys.CaseInsensitiveFileSys(root_dir)
 
 OVERLAY_TYPES = {
     'newest_kernel':add_newest_kernel_overlay,
