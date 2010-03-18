@@ -27,23 +27,35 @@ class FileSystemStack(object):
     def __init__(self):
         self.file_systems = []
 
-    def add_file_sys(self, file_sys, base_path = '/'):
+    def add_file_sys(self, file_sys, base_path='/', case_sensitive=True):
         base_path = os.path.normpath(base_path)
         # The base_path should end with a slash.
         if not base_path.endswith('/'):
             base_path += '/'
-        self.file_systems.append((file_sys, base_path))
+        self.file_systems.append((file_sys, base_path, case_sensitive))
 
     @staticmethod
-    def get_sub_path(base_path, path):
+    def _get_sub_path(base_path, path, case_sensitive):
+        """Determines whether 'base_path' is the base path of 'path'.  If it
+        is, the path beyond the base path is returned.  Returns None for
+        non-matching paths.
+
+        If 'case_sensitive' is False, the base path matching is
+        case-insensitive. However, the returned sub path's case is correctly
+        maintained.
+        """
         path = os.path.normpath(path)
-        if not path.startswith(base_path):
-            return None
+        if case_sensitive:
+            if not path.startswith(base_path):
+                return None
+        else:
+            if not path.lower().startswith(base_path.lower()):
+                return None
         return path[len(base_path) - 1:]
 
     def get_path(self, path):
-        for file_sys, base_path in self.file_systems:
-            sub_path = self.get_sub_path(base_path, path)
+        for file_sys, base_path, case_sensitive in self.file_systems:
+            sub_path = self._get_sub_path(base_path, path, case_sensitive)
             logger.debug('base_path %s, path %s, sub_path %s' % (base_path,
                     path, sub_path))
             if sub_path is not None:

@@ -153,12 +153,15 @@ def add_overlay(fss, cf, section):
         raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
                 (key, virtual_dir)
 
+    virt_case_sensitive = True
+    if cf.has_option(section, 'virtual_case_sensitive'):
+        virt_case_sensitive = cf.getboolean(section, 'virtual_case_sensitive')
     overlay_type = cf.get(section, 'type')
     if overlay_type in OVERLAY_TYPES:
-        logger.info('Overlay %s at %s' % (overlay_type,
-                cf.get(section, 'virtual_dir')))
+        logger.info('Overlay %s at %s (case-sensitive: %s)' % (overlay_type,
+                cf.get(section, 'virtual_dir'), virt_case_sensitive))
         fs = OVERLAY_TYPES[overlay_type](cf, section)
-        fss.add_file_sys(fs, virtual_dir)
+        fss.add_file_sys(fs, virtual_dir, virt_case_sensitive)
     else:
         raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
                 (key, cf.get(section, 'type'))
