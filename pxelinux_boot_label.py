@@ -70,7 +70,7 @@ class LocalBootLabel(BootLabel):
         return self.SPACES + "localboot 0\n"
 
 class KernelBootLabel(BootLabel):
-    def __init_(self, name, kernel, append = None, **kwargs):
+    def __init__(self, name, kernel, append=None, **kwargs):
         BootLabel.__init__(self, name, **kwargs)
         self.kernel = kernel
         self.append = append
@@ -92,7 +92,7 @@ class LinuxBootLabel(KernelBootLabel):
                 append='initrd=%s %s' % (initrd, append), **kwargs)
 
 class LinuxNfsRootBootLabel(LinuxBootLabel):
-    def __init__(self, name, kernel, initrd, append='', nfsroot,
+    def __init__(self, name, kernel, initrd, append, nfsroot,
             ramdisk_size = 14332, **kwargs):
         append = "ramdisk_size=%d root=/dev/nfs nfsroot=%s ip=dhcp %s" % \
                 (ramdisk_size, nfsroot, append)
