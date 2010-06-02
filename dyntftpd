@@ -33,7 +33,6 @@ import logging.config
 import os
 import socket
 import re
-import daemon
 import signal
 
 # Private python modules.
@@ -151,7 +150,7 @@ def add_overlay(fss, cf, section):
     virtual_dir = cf.get(section, 'virtual_dir')
     if virtual_dir[0] != '/':
         raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
-                (key, virtual_dir)
+                (section, virtual_dir)
 
     virt_case_sensitive = True
     if cf.has_option(section, 'virtual_case_sensitive'):
@@ -164,7 +163,7 @@ def add_overlay(fss, cf, section):
         fss.add_file_sys(fs, virtual_dir, virt_case_sensitive)
     else:
         raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
-                (key, cf.get(section, 'type'))
+                (section, cf.get(section, 'type'))
 
 def main():
     # Parse command-line options.
@@ -199,12 +198,6 @@ def main():
         for path in cf.get('daemon', 'module_path').split(':'):
             sys.path.append(path)
 
-    background = False
-    if cf.has_option('daemon', 'background') and \
-            cf.getboolean('daemon', 'background'):
-        background = True
-        pid_file = os.path.abspath(cf.get('daemon', 'pid_file'))
-
     fss = dt_filesys.FileSystemStack()
 
     # Add overlays
@@ -214,11 +207,6 @@ def main():
 
     sr = dt_filesys.SanitiseRequestFileSystemFilter(fss)
     server = tftpy.TftpCommonServer(sr)
-
-    # (Optionally) move to background
-    if background:
-        logger.debug('moving dyntftpd to background')
-        daemon.daemonise(pid_file = pid_file)
 
     # Set signal handlers.
     signal.signal(signal.SIGINT, sig_handler)
@@ -241,10 +229,6 @@ def main():
     except:
         logger.exception('Exception caught, aborting')
     logger.debug('Exiting dyntftpd')
-
-    if background:
-        # Clean up the PID file.
-        os.remove(pid_file)
 
 if __name__ == '__main__':
     main()
