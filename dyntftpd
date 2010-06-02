@@ -150,7 +150,7 @@ def add_overlay(fss, cf, section):
     virtual_dir = cf.get(section, 'virtual_dir')
     if virtual_dir[0] != '/':
         raise RuntimeError, 'Overlay %s with relative virtual_dir "%s"' % \
-                (key, virtual_dir)
+                (section, virtual_dir)
 
     virt_case_sensitive = True
     if cf.has_option(section, 'virtual_case_sensitive'):
@@ -163,7 +163,7 @@ def add_overlay(fss, cf, section):
         fss.add_file_sys(fs, virtual_dir, virt_case_sensitive)
     else:
         raise RuntimeError, 'Overlay %s with unknown type "%s"' % \
-                (key, cf.get(section, 'type'))
+                (section, cf.get(section, 'type'))
 
 def main():
     # Parse command-line options.
