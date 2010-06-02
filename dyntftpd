@@ -33,7 +33,6 @@ import logging.config
 import os
 import socket
 import re
-import daemon
 import signal
 
 # Private python modules.
@@ -199,12 +198,6 @@ def main():
         for path in cf.get('daemon', 'module_path').split(':'):
             sys.path.append(path)
 
-    background = False
-    if cf.has_option('daemon', 'background') and \
-            cf.getboolean('daemon', 'background'):
-        background = True
-        pid_file = os.path.abspath(cf.get('daemon', 'pid_file'))
-
     fss = dt_filesys.FileSystemStack()
 
     # Add overlays
@@ -214,11 +207,6 @@ def main():
 
     sr = dt_filesys.SanitiseRequestFileSystemFilter(fss)
     server = tftpy.TftpCommonServer(sr)
-
-    # (Optionally) move to background
-    if background:
-        logger.debug('moving dyntftpd to background')
-        daemon.daemonise(pid_file = pid_file)
 
     # Set signal handlers.
     signal.signal(signal.SIGINT, sig_handler)
@@ -241,10 +229,6 @@ def main():
     except:
         logger.exception('Exception caught, aborting')
     logger.debug('Exiting dyntftpd')
-
-    if background:
-        # Clean up the PID file.
-        os.remove(pid_file)
 
 if __name__ == '__main__':
     main()
