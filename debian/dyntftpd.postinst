@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+configure)
+  # Prepare Python module namespace(s).
+  update-python-modules -p
+
+  # enable service
+  update-service --add /etc/sv/dyntftpd
+
+  # restart service if it was running
+  test -z "$2" || sv -v term dyntftpd || :
+  ;;
+esac
+
+#DEBHELPER#

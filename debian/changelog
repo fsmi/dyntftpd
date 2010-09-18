@@ -1,3 +1,10 @@
+dyntftpd (0.11-1) fsmi-squeeze; urgency=low
+
+  * Actually name the upstream version correctly.
+  * Implement the daemonization parts using runit.
+
+ -- Philipp Kern <pkern@debian.org>  Sat, 18 Sep 2010 22:14:40 +0200
+
 dyntftpd (0.10-2) fsmi-lenny; urgency=low
 
   * Conflict against incompatible versions of python-tftpy and

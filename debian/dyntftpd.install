@@ -1,3 +1,4 @@
 *.py usr/share/dyntftpd/
 dyntftpd.conf etc/dyntftpd/
 dyntftpd usr/sbin/
+debian/sv/* etc/sv/dyntftpd/

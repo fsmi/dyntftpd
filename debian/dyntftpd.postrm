@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+purge)
+  sv force-stop dyntftpd || :
+  rm -rf /etc/sv/dyntftpd/supervise
+  rm -rf /var/lib/supervise/dyntftpd /var/lib/supervise/dyntftpd.log
+  ;;
+esac
+
+#DEBHELPER#

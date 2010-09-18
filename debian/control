@@ -8,8 +8,8 @@ Standards-Version: 3.8.4
 Package: dyntftpd
 Architecture: all
 Depends: ${python:Depends}, ${misc:Depends}, adduser,
- python-tftpy (>= 0.4.6-1~fsmi2)
-Conflicts: python-tftpy (>> 0.5.0), python-daemon (>> 1.5.0)
+ python-tftpy (>= 0.4.6-1~fsmi2), runit
+Conflicts: python-tftpy (>> 0.5.0)
 Description: TFTP daemon with support for dynamic generation of content
  This tftp daemon provides hooks to generate content on the fly using
  user-provided Python code or a set of built-in modes.
