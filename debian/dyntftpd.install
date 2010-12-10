@@ -2,3 +2,4 @@
 dyntftpd.conf etc/dyntftpd/
 dyntftpd usr/sbin/
 debian/sv/* etc/sv/dyntftpd/
+debian/sv/log/* etc/sv/dyntftpd/log/

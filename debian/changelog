@@ -1,3 +1,9 @@
+dyntftpd (0.11-2) fsmi-squeeze; urgency=low
+
+  * Add logging service to runit configuration.
+
+ -- Fabian Knittel <fabian.knittel@avona.com>  Fri, 10 Dec 2010 17:34:07 +0100
+
 dyntftpd (0.11-1) fsmi-squeeze; urgency=low
 
   * Actually name the upstream version correctly.
